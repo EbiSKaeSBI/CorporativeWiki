@@ -6,6 +6,7 @@ import (
 	"wiki/database"
 	"wiki/internal/config"
 	"wiki/internal/handler"
+	"wiki/internal/models"
 	"wiki/internal/repository"
 	"wiki/internal/service"
 
@@ -18,6 +19,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = db.AutoMigrate(&models.User{})
+	if err != nil {
+		log.Println(err)
+	}
+	
 	repo := repository.NewRepository(db)
 
 	service := service.NewService(repo)
