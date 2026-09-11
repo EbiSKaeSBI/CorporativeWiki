@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	
+
 	repo := repository.NewRepository(db)
 
 	service := service.NewService(repo)
