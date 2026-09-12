@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"wiki/database"
 	"wiki/internal/config"
 	"wiki/internal/models"
@@ -14,9 +18,7 @@ import (
 func newTestRepo(t *testing.T) *repository.Repository {
 	conf := config.Load()
 	db, err := database.Connect(conf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err, "failed to connect to database")
 	return repository.NewRepository(db)
 }
 
@@ -36,19 +38,13 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	created, err := repo.CreateUser(user)
-	if err != nil {
-		t.Fatalf("CreateUser failed: %v", err)
-	}
+	require.NoError(t, err, "CreateUser failed")
 
-	if created.ID == 0 {
-		t.Error("expected non-zero ID")
-	}
-	if created.Name != user.Name {
-		t.Errorf("expected name %q, got %q", user.Name, created.Name)
-	}
-	if created.Email != user.Email {
-		t.Errorf("expected email %q, got %q", user.Email, created.Email)
-	}
+	assert.NotZero(t, created.ID, "expected non-zero ID")
+	assert.Equal(t, user.Name, created.Name)
+	assert.Equal(t, user.Email, created.Email)
+	assert.Equal(t, user.Role, created.Role)
+	assert.NotZero(t, created.CreatedAt)
 }
 
 // TestCreateUser_DuplicateEmail проверяет, что повторная вставка с тем же email возвращает ошибку.
@@ -64,9 +60,8 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 		Role:         "viewer",
 	}
 
-	if _, err := repo.CreateUser(user1); err != nil {
-		t.Fatalf("first CreateUser failed: %v", err)
-	}
+	_, err := repo.CreateUser(user1)
+	require.NoError(t, err, "first CreateUser failed")
 
 	user2 := &models.User{
 		Name:         "User Two",
@@ -75,10 +70,9 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 		Role:         "viewer",
 	}
 
-	_, err := repo.CreateUser(user2)
-	if err == nil {
-		t.Error("expected error for duplicate email, got nil")
-	}
+	_, err = repo.CreateUser(user2)
+	require.Error(t, err, "expected error for duplicate email")
+	assert.ErrorContains(t, err, email)
 }
 
 // TestGetUserByID проверяет получение пользователя по ID.
@@ -93,24 +87,16 @@ func TestGetUserByID(t *testing.T) {
 	}
 
 	created, err := repo.CreateUser(user)
-	if err != nil {
-		t.Fatalf("CreateUser failed: %v", err)
-	}
+	require.NoError(t, err, "CreateUser failed")
 
 	found, err := repo.GetUserByID(created.ID)
-	if err != nil {
-		t.Fatalf("GetUserByID failed: %v", err)
-	}
+	require.NoError(t, err, "GetUserByID failed")
+	require.NotNil(t, found, "expected user, got nil")
 
-	if found == nil {
-		t.Fatal("expected user, got nil")
-	}
-	if found.ID != created.ID {
-		t.Errorf("expected ID %d, got %d", created.ID, found.ID)
-	}
-	if found.Email != created.Email {
-		t.Errorf("expected email %q, got %q", created.Email, found.Email)
-	}
+	assert.Equal(t, created.ID, found.ID)
+	assert.Equal(t, created.Email, found.Email)
+	assert.Equal(t, created.Name, found.Name)
+	assert.Equal(t, created.Role, found.Role)
 }
 
 // TestGetUserByID_NotFound проверяет, что запрос несуществующего ID возвращает ошибку.
@@ -118,9 +104,8 @@ func TestGetUserByID_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetUserByID(999999)
-	if err == nil {
-		t.Error("expected error for non-existent user, got nil")
-	}
+	require.Error(t, err, "expected error for non-existent user")
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
 // TestGetUserByEmail проверяет получение пользователя по email.
@@ -136,21 +121,14 @@ func TestGetUserByEmail(t *testing.T) {
 	}
 
 	created, err := repo.CreateUser(user)
-	if err != nil {
-		t.Fatalf("CreateUser failed: %v", err)
-	}
+	require.NoError(t, err, "CreateUser failed")
 
 	found, err := repo.GetUserByEmail(email)
-	if err != nil {
-		t.Fatalf("GetUserByEmail failed: %v", err)
-	}
+	require.NoError(t, err, "GetUserByEmail failed")
+	require.NotNil(t, found, "expected user, got nil")
 
-	if found == nil {
-		t.Fatal("expected user, got nil")
-	}
-	if found.ID != created.ID {
-		t.Errorf("expected ID %d, got %d", created.ID, found.ID)
-	}
+	assert.Equal(t, created.ID, found.ID)
+	assert.Equal(t, created.Email, found.Email)
 }
 
 // TestGetUserByEmail_NotFound проверяет запрос несуществующего email.
@@ -158,7 +136,6 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
 	_, err := repo.GetUserByEmail("nonexistent@example.com")
-	if err == nil {
-		t.Error("expected error for non-existent email, got nil")
-	}
+	require.Error(t, err, "expected error for non-existent email")
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
