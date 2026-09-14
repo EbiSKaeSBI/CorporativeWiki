@@ -87,8 +87,7 @@ func TestHandler_CreateUser_DuplicateEmail(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), email)
+	assert.Equal(t, http.StatusConflict, w.Code)
 }
 
 func TestHandler_GetUserByID(t *testing.T) {
@@ -140,5 +139,5 @@ func TestHandler_GetUserByID_InvalidID(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

@@ -79,5 +79,5 @@ func TestHandler_Register_DuplicateEmail(t *testing.T) {
 	req2.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w2, req2)
 
-	assert.Equal(t, http.StatusInternalServerError, w2.Code)
+	assert.Equal(t, http.StatusConflict, w2.Code)
 }

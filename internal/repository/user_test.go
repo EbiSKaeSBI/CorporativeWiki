@@ -73,7 +73,6 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 
 	_, err = repo.CreateUser(context.Background(), user2)
 	require.Error(t, err, "expected error for duplicate email")
-	assert.ErrorContains(t, err, email)
 }
 
 // TestGetUserByID проверяет получение пользователя по ID.

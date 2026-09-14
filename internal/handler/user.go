@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"wiki/internal/dto"
+	"wiki/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func (h *Handler) CreateUser(c *gin.Context) {
@@ -27,6 +27,12 @@ func (h *Handler) CreateUser(c *gin.Context) {
 		req.Role,
 	)
 	if err != nil {
+		if errors.Is(err, service.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -47,8 +53,8 @@ func (h *Handler) GetUserByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 0)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Некорректный ID пользователя",
 		})
 		return
 	}
@@ -58,9 +64,9 @@ func (h *Handler) GetUserByID(c *gin.Context) {
 		uint(id),
 	)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Пользователь с  таким ID не существует",
+				"error": "Пользователь с таким ID не существует",
 			})
 			return
 		}

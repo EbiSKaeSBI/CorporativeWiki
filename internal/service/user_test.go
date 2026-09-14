@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
 
 	"wiki/database"
 	"wiki/internal/config"
@@ -79,7 +78,7 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 
 	_, err = svc.CreateUser(context.Background(), "User Two", email, "password2", "viewer")
 	require.Error(t, err, "expected error for duplicate email")
-	assert.ErrorContains(t, err, email)
+	assert.ErrorIs(t, err, service.ErrUserAlreadyExists)
 }
 
 func TestCreateUser_DefaultRole(t *testing.T) {
@@ -124,7 +123,7 @@ func TestGetUserByID_NotFound(t *testing.T) {
 
 	_, err := svc.GetUserByID(context.Background(), 999999)
 	require.Error(t, err, "expected error for non-existent user")
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, service.ErrUserNotFound)
 }
 
 func TestGetUserByEmail(t *testing.T) {
@@ -153,6 +152,6 @@ func TestGetUserByEmail_NotFound(t *testing.T) {
 
 	_, err := svc.GetUserByEmail(context.Background(), "nonexistent@example.com")
 	require.Error(t, err, "expected error for non-existent email")
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	assert.ErrorIs(t, err, service.ErrUserNotFound)
 }
 

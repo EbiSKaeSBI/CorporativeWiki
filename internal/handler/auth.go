@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"wiki/internal/dto"
+	"wiki/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +25,12 @@ func (h *Handler) Register(c *gin.Context) {
 		req.Password,
 	)
 	if err != nil {
+		if errors.Is(err, service.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
