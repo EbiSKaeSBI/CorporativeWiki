@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	
+
 	repo := repository.NewRepository(db)
 
 	service := service.NewService(repo)
@@ -32,6 +32,6 @@ func main() {
 
 	router.GET("/health", handler.Health)
 	router.GET("/users/:id", handler.GetUserByID)
-	router.POST("/users", handler.CreateUser)
+	router.POST("/auth/register", handler.Register)
 	router.Run(conf.Port)
 }

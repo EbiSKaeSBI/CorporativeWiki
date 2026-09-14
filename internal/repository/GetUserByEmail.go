@@ -1,11 +1,15 @@
 package repository
 
-import "wiki/internal/models"
+import (
+	"context"
 
-func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
-	var user *models.User
-	if err := r.db.Where("email=?", email).First(&user).Error; err != nil {
+	"wiki/internal/models"
+)
+
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+	if err := r.db.WithContext(ctx).Where("email=?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }

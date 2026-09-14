@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -9,11 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func (r *Repository) CreateUser(user *models.User) (*models.User, error) {
-	_, err := r.GetUserByEmail(user.Email)
+func (r *Repository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	_, err := r.GetUserByEmail(ctx, user.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := r.db.Create(user).Error; err != nil {
+			if err := r.db.WithContext(ctx).Create(user).Error; err != nil {
 				return nil, err
 			}
 			return user, nil

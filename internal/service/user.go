@@ -30,11 +30,11 @@ func (s *Service) CreateUser(ctx context.Context, name, email, password, role st
 		PasswordHash: hashed,
 		Role:         role,
 	}
-	return s.repo.CreateUser(user)
+	return s.repo.CreateUser(ctx,user)
 }
 
 func (s *Service) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
-	user, err := s.repo.GetUserByID(id)
+	user, err := s.repo.GetUserByID(ctx,id)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (s *Service) GetUserByID(ctx context.Context, id uint) (*models.User, error
 }
 
 func (s *Service) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	user, err := s.repo.GetUserByEmail(email)
+	user, err := s.repo.GetUserByEmail(ctx,email)
 	if err != nil {
 		return nil, err
 	}

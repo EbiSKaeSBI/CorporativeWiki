@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -37,7 +38,7 @@ func TestCreateUser(t *testing.T) {
 		Role:         "viewer",
 	}
 
-	created, err := repo.CreateUser(user)
+	created, err := repo.CreateUser(context.Background(), user)
 	require.NoError(t, err, "CreateUser failed")
 
 	assert.NotZero(t, created.ID, "expected non-zero ID")
@@ -60,7 +61,7 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 		Role:         "viewer",
 	}
 
-	_, err := repo.CreateUser(user1)
+	_, err := repo.CreateUser(context.Background(), user1)
 	require.NoError(t, err, "first CreateUser failed")
 
 	user2 := &models.User{
@@ -70,7 +71,7 @@ func TestCreateUser_DuplicateEmail(t *testing.T) {
 		Role:         "viewer",
 	}
 
-	_, err = repo.CreateUser(user2)
+	_, err = repo.CreateUser(context.Background(), user2)
 	require.Error(t, err, "expected error for duplicate email")
 	assert.ErrorContains(t, err, email)
 }
@@ -86,10 +87,10 @@ func TestGetUserByID(t *testing.T) {
 		Role:         "editor",
 	}
 
-	created, err := repo.CreateUser(user)
+	created, err := repo.CreateUser(context.Background(), user)
 	require.NoError(t, err, "CreateUser failed")
 
-	found, err := repo.GetUserByID(created.ID)
+	found, err := repo.GetUserByID(context.Background(), created.ID)
 	require.NoError(t, err, "GetUserByID failed")
 	require.NotNil(t, found, "expected user, got nil")
 
@@ -103,7 +104,7 @@ func TestGetUserByID(t *testing.T) {
 func TestGetUserByID_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
-	_, err := repo.GetUserByID(999999)
+	_, err := repo.GetUserByID(context.Background(), 999999)
 	require.Error(t, err, "expected error for non-existent user")
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
@@ -120,10 +121,10 @@ func TestGetUserByEmail(t *testing.T) {
 		Role:         "admin",
 	}
 
-	created, err := repo.CreateUser(user)
+	created, err := repo.CreateUser(context.Background(), user)
 	require.NoError(t, err, "CreateUser failed")
 
-	found, err := repo.GetUserByEmail(email)
+	found, err := repo.GetUserByEmail(context.Background(), email)
 	require.NoError(t, err, "GetUserByEmail failed")
 	require.NotNil(t, found, "expected user, got nil")
 
@@ -135,7 +136,7 @@ func TestGetUserByEmail(t *testing.T) {
 func TestGetUserByEmail_NotFound(t *testing.T) {
 	repo := newTestRepo(t)
 
-	_, err := repo.GetUserByEmail("nonexistent@example.com")
+	_, err := repo.GetUserByEmail(context.Background(), "nonexistent@example.com")
 	require.Error(t, err, "expected error for non-existent email")
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }

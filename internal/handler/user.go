@@ -13,7 +13,7 @@ import (
 
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req dto.CreateUserRequest
-	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Некорректный запрос",
 		})
@@ -65,7 +65,7 @@ func (h *Handler) GetUserByID(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(), 
+			"error": err.Error(),
 		})
 		return
 	}
@@ -79,5 +79,3 @@ func (h *Handler) GetUserByID(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
-
-

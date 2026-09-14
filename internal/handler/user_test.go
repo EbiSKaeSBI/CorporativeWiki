@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -63,7 +64,7 @@ func TestHandler_CreateUser_DuplicateEmail(t *testing.T) {
 	r, repo := setupRouter(t)
 
 	email := uniqueEmail()
-	_, err := repo.CreateUser(&models.User{
+	_, err := repo.CreateUser(context.Background(), &models.User{
 		Name:         "Existing",
 		Email:        email,
 		PasswordHash: "hash",
@@ -93,7 +94,7 @@ func TestHandler_CreateUser_DuplicateEmail(t *testing.T) {
 func TestHandler_GetUserByID(t *testing.T) {
 	r, repo := setupRouter(t)
 
-	created, err := repo.CreateUser(&models.User{
+	created, err := repo.CreateUser(context.Background(), &models.User{
 		Name:         "Lookup",
 		Email:        uniqueEmail(),
 		PasswordHash: "hash",

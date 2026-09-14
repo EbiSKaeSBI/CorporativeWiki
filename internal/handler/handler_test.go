@@ -32,6 +32,7 @@ func setupRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 	r.GET("/health", h.Health)
 	r.GET("/users/:id", h.GetUserByID)
 	r.POST("/users", h.CreateUser)
+	r.POST("/auth/register", h.Register)
 	return r, repo
 }
 
