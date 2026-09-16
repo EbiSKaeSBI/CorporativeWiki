@@ -6,11 +6,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-func (h *Handler) Health(c *gin.Context){
+// Health возвращает статус приложения
+// @Summary Проверка состояния
+// @Description Возвращает статус приложения (alive, starting и т.д.)
+// @Tags health
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /health [get]
+func (h *Handler) Health(c *gin.Context) {
 	status := h.service.Check()
 	c.JSON(http.StatusOK, gin.H{
-		"status": status, 
+		"status": status,
 	})
 }
-

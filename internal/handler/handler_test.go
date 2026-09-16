@@ -33,6 +33,7 @@ func setupRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 	r.GET("/users/:id", h.GetUserByID)
 	r.POST("/users", h.CreateUser)
 	r.POST("/auth/register", h.Register)
+	r.POST("/auth/login", h.Login)
 	return r, repo
 }
 

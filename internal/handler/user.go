@@ -11,6 +11,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateUser создаёт нового пользователя через сервисный слой
+// @Summary Создать пользователя
+// @Description Создаёт нового пользователя в системе (административный эндпоинт)
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateUserRequest true "Данные пользователя"
+// @Success 201 {object} dto.UserResponse
+// @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users [post]
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req dto.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,6 +61,18 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
+// GetUserByID возвращает пользователя по идентификатору
+// @Summary Получить пользователя по ID
+// @Description Возвращает данные пользователя по его числовому идентификатору
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path int true "ID пользователя"
+// @Success 200 {object} dto.UserResponse
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/:id [get]
 func (h *Handler) GetUserByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 0)

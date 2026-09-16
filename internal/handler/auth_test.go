@@ -81,3 +81,96 @@ func TestHandler_Register_DuplicateEmail(t *testing.T) {
 
 	assert.Equal(t, http.StatusConflict, w2.Code)
 }
+
+func TestHandler_Login(t *testing.T) {
+	r, _ := setupRouter(t)
+
+	email := uniqueEmail()
+	body, err := json.Marshal(dto.RegisterRequest{
+		Name:     "Login User",
+		Email:    email,
+		Password: "secret123",
+	})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	loginBody, err := json.Marshal(dto.LoginRequest{
+		Email:    email,
+		Password: "secret123",
+	})
+	require.NoError(t, err)
+
+	w2 := httptest.NewRecorder()
+	req2, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(loginBody))
+	require.NoError(t, err)
+	req2.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w2, req2)
+
+	assert.Equal(t, http.StatusOK, w2.Code)
+
+	var resp dto.UserResponse
+	err = json.Unmarshal(w2.Body.Bytes(), &resp)
+	require.NoError(t, err, "failed to parse response body")
+
+	assert.Equal(t, "Login User", resp.Name)
+	assert.Equal(t, email, resp.Email)
+	assert.NotZero(t, resp.ID)
+}
+
+func TestHandler_Login_InvalidPassword(t *testing.T) {
+	r, _ := setupRouter(t)
+
+	email := uniqueEmail()
+	body, err := json.Marshal(dto.RegisterRequest{
+		Name:     "Login User",
+		Email:    email,
+		Password: "correct",
+	})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	loginBody, err := json.Marshal(dto.LoginRequest{
+		Email:    email,
+		Password: "wrong",
+	})
+	require.NoError(t, err)
+
+	w2 := httptest.NewRecorder()
+	req2, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(loginBody))
+	require.NoError(t, err)
+	req2.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w2, req2)
+
+	assert.Equal(t, http.StatusUnauthorized, w2.Code)
+	assert.JSONEq(t, `{"error":"invalid email or password"}`, w2.Body.String())
+}
+
+func TestHandler_Login_UserNotFound(t *testing.T) {
+	r, _ := setupRouter(t)
+
+	loginBody, err := json.Marshal(dto.LoginRequest{
+		Email:    "nonexistent@example.com",
+		Password: "any",
+	})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(loginBody))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
