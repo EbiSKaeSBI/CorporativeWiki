@@ -80,7 +80,7 @@ func (h *Handler) Login(c *gin.Context) {
 		})
 		return
 	}
-	user, err := h.service.Login(
+	resp, err := h.service.Login(
 		c.Request.Context(),
 		req.Email,
 		req.Password,
@@ -97,13 +97,15 @@ func (h *Handler) Login(c *gin.Context) {
 		})
 		return
 	}
-	resp := dto.UserResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, dto.LoginResponse{
+		AccessToken: resp.AccessToken,
+		User: dto.UserResponse{
+			ID:        resp.User.ID,
+			Name:      resp.User.Name,
+			Email:     resp.User.Email,
+			Role:      resp.User.Role,
+			CreatedAt: resp.User.CreatedAt,
+			UpdatedAt: resp.User.UpdatedAt,
+		},
+	})
 }

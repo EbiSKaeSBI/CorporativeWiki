@@ -4,11 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"wiki/internal/service"
 )
+
+func init() {
+	_ = godotenv.Load()
+}
 
 func TestRegister(t *testing.T) {
 	svc := newTestService(t)
@@ -65,12 +70,13 @@ func TestLogin(t *testing.T) {
 	_, err := svc.Register(context.Background(), "Login User", email, password)
 	require.NoError(t, err)
 
-	user, err := svc.Login(context.Background(), email, password)
+	result, err := svc.Login(context.Background(), email, password)
 	require.NoError(t, err)
-	require.NotNil(t, user)
+	require.NotNil(t, result)
 
-	assert.Equal(t, "Login User", user.Name)
-	assert.Equal(t, email, user.Email)
+	assert.Equal(t, "Login User", result.User.Name)
+	assert.Equal(t, email, result.User.Email)
+	assert.NotEmpty(t, result.AccessToken, "expected access token to be generated")
 }
 
 func TestLogin_InvalidPassword(t *testing.T) {

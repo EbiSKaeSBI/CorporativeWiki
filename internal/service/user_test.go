@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,12 +16,16 @@ import (
 	"wiki/internal/service"
 )
 
+func init() {
+	_ = godotenv.Load()
+}
+
 func newTestService(t *testing.T) *service.Service {
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
 	repo := repository.NewRepository(db)
-	return service.NewService(repo)
+	return service.NewService(repo, conf)
 }
 
 func uniqueEmail() string {

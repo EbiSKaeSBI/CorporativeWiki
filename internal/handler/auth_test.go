@@ -114,13 +114,14 @@ func TestHandler_Login(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w2.Code)
 
-	var resp dto.UserResponse
+	var resp dto.LoginResponse
 	err = json.Unmarshal(w2.Body.Bytes(), &resp)
 	require.NoError(t, err, "failed to parse response body")
 
-	assert.Equal(t, "Login User", resp.Name)
-	assert.Equal(t, email, resp.Email)
-	assert.NotZero(t, resp.ID)
+	assert.Equal(t, "Login User", resp.User.Name)
+	assert.Equal(t, email, resp.User.Email)
+	assert.NotZero(t, resp.User.ID)
+	assert.NotEmpty(t, resp.AccessToken, "expected access token in response")
 }
 
 func TestHandler_Login_InvalidPassword(t *testing.T) {

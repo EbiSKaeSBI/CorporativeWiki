@@ -16,6 +16,7 @@ import (
 	"github.com/gin-contrib/cors"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/joho/godotenv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,9 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	if err != nil {
@@ -40,7 +44,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(db)
-	service := service.NewService(repo)
+	service := service.NewService(repo, conf)
 	handler := handler.NewHandler(service)
 	router := gin.Default()
 	router.Use(cors.Default())

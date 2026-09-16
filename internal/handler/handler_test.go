@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 
 	"wiki/database"
@@ -15,12 +16,16 @@ import (
 	"wiki/internal/service"
 )
 
+func init() {
+	_ = godotenv.Load()
+}
+
 func newTestHandler(t *testing.T) (*handler.Handler, *repository.Repository) {
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
 	repo := repository.NewRepository(db)
-	return handler.NewHandler(service.NewService(repo)), repo
+	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
 
 // setupRouter собирает роутер так же, как в cmd/server/main.go.
