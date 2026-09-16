@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -96,7 +96,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RegisterRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.RegisterRequest"
                         }
                     }
                 ],
@@ -104,7 +104,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -183,7 +183,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateUserRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -191,7 +191,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -250,7 +250,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -285,7 +285,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CreateUserRequest": {
+        "wiki_internal_dto.CreateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -302,7 +302,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.LoginRequest": {
+        "wiki_internal_dto.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -313,7 +313,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.RegisterRequest": {
+        "wiki_internal_dto.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -327,7 +327,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserResponse": {
+        "wiki_internal_dto.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -364,7 +364,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/v1",
+	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Corporate Wiki API",
 	Description:      "API для корпоративной Wiki (Auth, Users)",

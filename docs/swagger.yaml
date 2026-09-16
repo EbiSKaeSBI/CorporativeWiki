@@ -1,6 +1,6 @@
-basePath: /v1
+basePath: /
 definitions:
-  dto.CreateUserRequest:
+  wiki_internal_dto.CreateUserRequest:
     properties:
       email:
         type: string
@@ -11,14 +11,14 @@ definitions:
       role:
         type: string
     type: object
-  dto.LoginRequest:
+  wiki_internal_dto.LoginRequest:
     properties:
       email:
         type: string
       password:
         type: string
     type: object
-  dto.RegisterRequest:
+  wiki_internal_dto.RegisterRequest:
     properties:
       email:
         type: string
@@ -27,7 +27,7 @@ definitions:
       password:
         type: string
     type: object
-  dto.UserResponse:
+  wiki_internal_dto.UserResponse:
     properties:
       created_at:
         type: string
@@ -60,14 +60,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.LoginRequest'
+          $ref: '#/definitions/wiki_internal_dto.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.UserResponse'
+            $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
           description: Bad Request
           schema:
@@ -100,14 +100,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.RegisterRequest'
+          $ref: '#/definitions/wiki_internal_dto.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.UserResponse'
+            $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
           description: Bad Request
           schema:
@@ -157,14 +157,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateUserRequest'
+          $ref: '#/definitions/wiki_internal_dto.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.UserResponse'
+            $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
           description: Bad Request
           schema:
@@ -203,7 +203,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.UserResponse'
+            $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
           description: Bad Request
           schema:

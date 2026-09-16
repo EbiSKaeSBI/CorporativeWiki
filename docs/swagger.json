@@ -7,7 +7,7 @@
         "version": "1.0"
     },
     "host": "localhost:8080",
-    "basePath": "/v1",
+    "basePath": "/",
     "paths": {
         "/auth/login": {
             "post": {
@@ -29,7 +29,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.LoginRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.LoginRequest"
                         }
                     }
                 ],
@@ -37,7 +37,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -90,7 +90,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.RegisterRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.RegisterRequest"
                         }
                     }
                 ],
@@ -98,7 +98,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -177,7 +177,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateUserRequest"
+                            "$ref": "#/definitions/wiki_internal_dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -185,7 +185,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -244,7 +244,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                         }
                     },
                     "400": {
@@ -279,7 +279,7 @@
         }
     },
     "definitions": {
-        "dto.CreateUserRequest": {
+        "wiki_internal_dto.CreateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -296,7 +296,7 @@
                 }
             }
         },
-        "dto.LoginRequest": {
+        "wiki_internal_dto.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -307,7 +307,7 @@
                 }
             }
         },
-        "dto.RegisterRequest": {
+        "wiki_internal_dto.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -321,7 +321,7 @@
                 }
             }
         },
-        "dto.UserResponse": {
+        "wiki_internal_dto.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {

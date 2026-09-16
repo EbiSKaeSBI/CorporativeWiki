@@ -7,11 +7,13 @@ import (
 
 	"wiki/database"
 	"wiki/internal/config"
+	_ "wiki/internal/dto"
 	"wiki/internal/handler"
 	"wiki/internal/models"
 	"wiki/internal/repository"
 	"wiki/internal/service"
 
+	"github.com/gin-contrib/cors"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -22,7 +24,7 @@ import (
 // @version 1.0
 // @description API для корпоративной Wiki (Auth, Users)
 // @host localhost:8080
-// @BasePath /v1
+// @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
@@ -41,10 +43,35 @@ func main() {
 	service := service.NewService(repo)
 	handler := handler.NewHandler(service)
 	router := gin.Default()
+	router.Use(cors.Default())
 
+	// @Summary Health check
+	// @Tags Health
+	// @Success 200 {object} map[string]string
+	// @Router /health [get]
 	router.GET("/health", handler.Health)
+
+	// @Summary Get user by ID
+	// @Tags Users
+	// @Param id path string true "User ID"
+	// @Success 200 {object} models.User
+	// @Router /users/{id} [get]
 	router.GET("/users/:id", handler.GetUserByID)
+
+	// @Summary Register new user
+	// @Tags Auth
+	// @Accept json
+	// @Param input body dto.RegisterRequest true "Register input"
+	// @Success 201 {object} models.User
+	// @Router /auth/register [post]
 	router.POST("/auth/register", handler.Register)
+
+	// @Summary Login
+	// @Tags Auth
+	// @Accept json
+	// @Param input body dto.LoginRequest true "Login input"
+	// @Success 200 {object} map[string]string
+	// @Router /auth/login [post]
 	router.POST("/auth/login", handler.Login)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
