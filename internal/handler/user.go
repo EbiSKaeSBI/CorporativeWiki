@@ -19,9 +19,9 @@ import (
 // @Produce json
 // @Param request body dto.CreateUserRequest true "Данные пользователя"
 // @Success 201 {object} dto.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse "Некорректный запрос (невалидный JSON)"
+// @Failure 409 {object} dto.ErrorResponse "Пользователь с таким email уже существует"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users [post]
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req dto.CreateUserRequest
@@ -69,9 +69,9 @@ func (h *Handler) CreateUser(c *gin.Context) {
 // @Produce json
 // @Param id path int true "ID пользователя"
 // @Success 200 {object} dto.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse "Некорректный ID пользователя"
+// @Failure 404 {object} dto.ErrorResponse "Пользователь с таким ID не найден"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /users/:id [get]
 func (h *Handler) GetUserByID(c *gin.Context) {
 	idStr := c.Param("id")

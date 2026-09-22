@@ -12,7 +12,7 @@ import (
 // @Tags health
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]string
+// @Success 200 {object} map[string]string "Статус приложения"
 // @Router /health [get]
 func (h *Handler) Health(c *gin.Context) {
 	status := h.service.Check()

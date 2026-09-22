@@ -18,9 +18,9 @@ import (
 // @Produce json
 // @Param request body dto.RegisterRequest true "Данные регистрации"
 // @Success 201 {object} dto.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse "Некорректный запрос (невалидный JSON)"
+// @Failure 409 {object} dto.ErrorResponse "Пользователь с таким email уже существует"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
@@ -62,15 +62,15 @@ func (h *Handler) Register(c *gin.Context) {
 
 // Login выполняет аутентификацию пользователя
 // @Summary Вход в систему
-// @Description Проверяет логин и пароль, возвращает данные пользователя
+// @Description Проверяет логин и пароль, возвращает JWT-токен и данные пользователя
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param request body dto.LoginRequest true "Учётные данные"
-// @Success 200 {object} dto.UserResponse
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Success 200 {object} dto.LoginResponse
+// @Failure 400 {object} dto.ErrorResponse "Некорректный запрос (невалидный JSON)"
+// @Failure 401 {object} dto.ErrorResponse "Неверный email или пароль"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
 // @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req dto.LoginRequest
@@ -107,5 +107,51 @@ func (h *Handler) Login(c *gin.Context) {
 			CreatedAt: resp.User.CreatedAt,
 			UpdatedAt: resp.User.UpdatedAt,
 		},
+	})
+}
+
+// Profile возвращает профиль текущего авторизованного пользователя
+// @Summary Профиль пользователя
+// @Description Возвращает данные текущего пользователя по JWT-токену в заголовке Authorization
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.UserResponse
+// @Failure 401 {object} dto.ErrorResponse "Невалидный или отсутствующий токен"
+// @Failure 500 {object} dto.ErrorResponse "Внутренняя ошибка сервера"
+// @Router /api/profile [get]
+func (h *Handler) Profile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Пользователь не найден",
+		})
+		return
+	}
+
+	id, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Пользователь не найден",
+		})
+		return
+	}
+
+	user, err := h.service.GetUserByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.UserResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	})
 }

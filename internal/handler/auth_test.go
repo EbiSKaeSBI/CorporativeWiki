@@ -2,15 +2,18 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"wiki/internal/dto"
+	"wiki/internal/models"
 )
 
 func TestHandler_Register(t *testing.T) {
@@ -171,6 +174,99 @@ func TestHandler_Login_UserNotFound(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(loginBody))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandler_Login_InvalidBody(t *testing.T) {
+	r, _ := setupRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewBufferString("{not json"))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.JSONEq(t, `{"error":"Некорректный запрос"}`, w.Body.String())
+}
+
+func TestHandler_Profile(t *testing.T) {
+	r, repo := setupProtectedRouter(t)
+
+	// Создаём пользователя напрямую через репозиторий
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name:         "Profile User",
+		Email:        uniqueEmail(),
+		PasswordHash: "hash",
+		Role:         "admin",
+	})
+	require.NoError(t, err)
+
+	token := testToken(t, user.ID)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/profile", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp dto.UserResponse
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+
+	assert.Equal(t, user.ID, resp.ID)
+	assert.Equal(t, "Profile User", resp.Name)
+	assert.Equal(t, "admin", resp.Role)
+}
+
+func TestHandler_Profile_NoToken(t *testing.T) {
+	r, _ := setupProtectedRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/profile", nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandler_Profile_InvalidToken(t *testing.T) {
+	r, _ := setupProtectedRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/profile", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandler_Profile_WrongSecret(t *testing.T) {
+	r, repo := setupProtectedRouter(t)
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name:         "Wrong Secret",
+		Email:        uniqueEmail(),
+		PasswordHash: "hash",
+		Role:         "viewer",
+	})
+	require.NoError(t, err)
+
+	// Токен подписан неправильным secret
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": float64(user.ID),
+	})
+	tokenString, _ := token.SignedString([]byte("wrong-secret"))
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/profile", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)

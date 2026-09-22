@@ -9,14 +9,15 @@ import (
 	"wiki/internal/config"
 	_ "wiki/internal/dto"
 	"wiki/internal/handler"
+	"wiki/internal/middleware"
 	"wiki/internal/models"
 	"wiki/internal/repository"
 	"wiki/internal/service"
 
 	"github.com/gin-contrib/cors"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/joho/godotenv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -48,6 +49,8 @@ func main() {
 	handler := handler.NewHandler(service)
 	router := gin.Default()
 	router.Use(cors.Default())
+	protected := router.Group("/api")
+	protected.Use(middleware.AuthMiddleware(conf.JwtSecret))
 
 	// @Summary Health check
 	// @Tags Health
@@ -77,7 +80,7 @@ func main() {
 	// @Success 200 {object} map[string]string
 	// @Router /auth/login [post]
 	router.POST("/auth/login", handler.Login)
-
+	protected.GET("/profile", handler.Profile)
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
 	router.Run(conf.Port)

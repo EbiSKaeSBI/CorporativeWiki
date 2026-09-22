@@ -15,9 +15,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает данные текущего пользователя по JWT-токену в заголовке Authorization",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Профиль пользователя",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Невалидный или отсутствующий токен",
+                        "schema": {
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
-                "description": "Проверяет логин и пароль, возвращает данные пользователя",
+                "description": "Проверяет логин и пароль, возвращает JWT-токен и данные пользователя",
                 "consumes": [
                     "application/json"
                 ],
@@ -43,34 +83,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                            "$ref": "#/definitions/wiki_internal_dto.LoginResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Неверный email или пароль",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -108,30 +139,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "Пользователь с таким email уже существует",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -152,7 +174,7 @@ const docTemplate = `{
                 "summary": "Проверка состояния",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Статус приложения",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -195,30 +217,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "Conflict",
+                        "description": "Пользователь с таким email уже существует",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -254,30 +267,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный ID пользователя",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "Пользователь с таким ID не найден",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
                         }
                     }
                 }
@@ -302,6 +306,16 @@ const docTemplate = `{
                 }
             }
         },
+        "wiki_internal_dto.ErrorResponse": {
+            "description": "Стандартный ответ при ошибке",
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Описание ошибки"
+                }
+            }
+        },
         "wiki_internal_dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -310,6 +324,17 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "wiki_internal_dto.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/wiki_internal_dto.UserResponse"
                 }
             }
         },

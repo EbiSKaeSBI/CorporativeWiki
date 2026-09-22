@@ -11,12 +11,26 @@ definitions:
       role:
         type: string
     type: object
+  wiki_internal_dto.ErrorResponse:
+    description: Стандартный ответ при ошибке
+    properties:
+      error:
+        example: Описание ошибки
+        type: string
+    type: object
   wiki_internal_dto.LoginRequest:
     properties:
       email:
         type: string
       password:
         type: string
+    type: object
+  wiki_internal_dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/wiki_internal_dto.UserResponse'
     type: object
   wiki_internal_dto.RegisterRequest:
     properties:
@@ -49,11 +63,37 @@ info:
   title: Corporate Wiki API
   version: "1.0"
 paths:
+  /api/profile:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные текущего пользователя по JWT-токену в заголовке
+        Authorization
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/wiki_internal_dto.UserResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Профиль пользователя
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
       - application/json
-      description: Проверяет логин и пароль, возвращает данные пользователя
+      description: Проверяет логин и пароль, возвращает JWT-токен и данные пользователя
       parameters:
       - description: Учётные данные
         in: body
@@ -67,25 +107,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/wiki_internal_dto.UserResponse'
+            $ref: '#/definitions/wiki_internal_dto.LoginResponse'
         "400":
-          description: Bad Request
+          description: Некорректный запрос (невалидный JSON)
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: Неверный email или пароль
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
       summary: Вход в систему
       tags:
       - auth
@@ -109,23 +143,17 @@ paths:
           schema:
             $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
-          description: Bad Request
+          description: Некорректный запрос (невалидный JSON)
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "409":
-          description: Conflict
+          description: Пользователь с таким email уже существует
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
       summary: Регистрация
       tags:
       - auth
@@ -138,7 +166,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Статус приложения
           schema:
             additionalProperties:
               type: string
@@ -166,23 +194,17 @@ paths:
           schema:
             $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
-          description: Bad Request
+          description: Некорректный запрос (невалидный JSON)
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "409":
-          description: Conflict
+          description: Пользователь с таким email уже существует
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
       summary: Создать пользователя
       tags:
       - users
@@ -205,23 +227,17 @@ paths:
           schema:
             $ref: '#/definitions/wiki_internal_dto.UserResponse'
         "400":
-          description: Bad Request
+          description: Некорректный ID пользователя
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "404":
-          description: Not Found
+          description: Пользователь с таким ID не найден
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/wiki_internal_dto.ErrorResponse'
       summary: Получить пользователя по ID
       tags:
       - users
