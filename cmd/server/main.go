@@ -39,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.AutoMigrate(&models.User{})
+	err = db.AutoMigrate(&models.User{}, &models.Article{})
 	if err != nil {
 		log.Println(err)
 	}
@@ -51,6 +51,12 @@ func main() {
 	router.Use(cors.Default())
 	protected := router.Group("/api")
 	protected.Use(middleware.AuthMiddleware(conf.JwtSecret))
+	admin := protected.Group("/admin")
+	editor := protected.Group("/articles")
+
+	editor.Use(middleware.RoleMiddleware("admin", "editor"))
+	admin.Use(middleware.RoleMiddleware("admin"))
+
 
 	// @Summary Health check
 	// @Tags Health
@@ -63,7 +69,7 @@ func main() {
 	// @Param id path string true "User ID"
 	// @Success 200 {object} models.User
 	// @Router /users/{id} [get]
-	router.GET("/users/:id", handler.GetUserByID)
+	admin.GET("/users/:id", handler.GetUserByID)
 
 	// @Summary Register new user
 	// @Tags Auth

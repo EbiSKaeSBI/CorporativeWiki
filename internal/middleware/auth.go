@@ -51,10 +51,50 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 				"error": "invalid user id",
 			})
 			c.Abort()
-			return 
+			return
 		}
 		userID := uint(sub)
+		role, ok := claims["role"].(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid role",
+			})
+			c.Abort()
+			return
+		}
 		c.Set("user_id", userID)
+		c.Set("role", role)
 		c.Next()
+	}
+}
+
+func RoleMiddleware(roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		roleValue, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Роль не найдена",
+			})
+			c.Abort()
+			return
+		}
+		roleUser, ok := roleValue.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid role",
+			})
+			c.Abort()
+			return
+		}
+		for _, role := range roles {
+			if roleUser == role {
+				c.Next()
+				return 
+			} 
+		}
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "У вас недостаточно прав",
+		})
+		c.Abort()
 	}
 }
