@@ -12,3 +12,7 @@ func NewRepository(db *gorm.DB) *Repository{
 		db: db,
 	}
 }
+
+func (r *Repository) GetDB() *gorm.DB {
+	return r.db
+}

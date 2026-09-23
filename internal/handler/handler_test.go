@@ -70,8 +70,9 @@ func setupProtectedRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 func testToken(t *testing.T, userID uint) string {
 	conf := config.Load()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": float64(userID),
-		"exp": time.Now().Add(time.Hour).Unix(),
+		"sub":  float64(userID),
+		"role": "admin",
+		"exp":  time.Now().Add(time.Hour).Unix(),
 	})
 	tokenString, err := token.SignedString([]byte(conf.JwtSecret))
 	require.NoError(t, err)
