@@ -29,6 +29,8 @@ import (
 func newArticleHandler(t *testing.T, conf *config.Config) (*handler.Handler, *repository.Repository) {
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
+	// Гарантируем схему до запуска тестов (см. комментарий в newTestHandler).
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}), "failed to run migrations")
 	repo := repository.NewRepository(db)
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
@@ -141,7 +143,7 @@ func TestHandler_CreateArticle_InvalidBody(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.JSONEq(t, `{"error":"Некорректный JSON"}`, w.Body.String())
+	assert.JSONEq(t, `{"error":"Некорректные данные"}`, w.Body.String())
 }
 
 func TestHandler_CreateArticle_DuplicateSlug(t *testing.T) {
@@ -174,7 +176,8 @@ func TestHandler_CreateArticle_DuplicateSlug(t *testing.T) {
 	req2.Header.Set("Authorization", "Bearer "+token)
 	r.ServeHTTP(w2, req2)
 
-	assert.Equal(t, http.StatusInternalServerError, w2.Code)
+	assert.Equal(t, http.StatusConflict, w2.Code)
+	assert.JSONEq(t, `{"error":"article already exists"}`, w2.Body.String())
 }
 
 func TestHandler_GetArticle(t *testing.T) {
@@ -365,7 +368,7 @@ func TestHandler_UpdateArticle_NotFound(t *testing.T) {
 	r, _ := setupArticleRouter(t)
 	token := testToken(t, 1)
 
-	updateBody, _ := json.Marshal(dto.UpdateArticleRequest{Title: "X"})
+	updateBody, _ := json.Marshal(dto.UpdateArticleRequest{Title: "X Title", Slug: uniqueSlug(), Content: "body"})
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPut, "/api/articles/999999", bytes.NewReader(updateBody))
@@ -434,7 +437,7 @@ func TestHandler_UpdateArticle_Forbidden(t *testing.T) {
 	require.NoError(t, err)
 	viewerToken := testToken(t, viewer.ID)
 
-	body, _ := json.Marshal(dto.UpdateArticleRequest{Title: "Hacked"})
+	body, _ := json.Marshal(dto.UpdateArticleRequest{Title: "Hacked", Slug: "hacked-slug", Content: "hacked body"})
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/articles/%d", article.ID), bytes.NewReader(body))
@@ -485,8 +488,8 @@ func TestHandler_DeleteArticle(t *testing.T) {
 
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `{"message":"Статья удалена"}`, w.Body.String())
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Empty(t, w.Body.String(), "204 must have no body")
 
 	_, err = repo.GetArticleByID(context.Background(), article.ID)
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)

@@ -18,6 +18,9 @@ func (s *Service) CreateArticle(ctx context.Context, userID uint, title, slug, c
 		AuthorID: userID,
 	})
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, ErrArticleAlreadyExists
+		}
 		return nil, err
 	}
 	return article, nil
@@ -72,8 +75,8 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 	}
 }
 
-func (s *Service) DeleteArticle(ctx context.Context,userID, articleID uint) error {
-article, err := s.repo.GetArticleByID(ctx, articleID)
+func (s *Service) DeleteArticle(ctx context.Context, userID, articleID uint) error {
+	article, err := s.repo.GetArticleByID(ctx, articleID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrArticleNotFound
@@ -84,7 +87,7 @@ article, err := s.repo.GetArticleByID(ctx, articleID)
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return  ErrUserNotFound
+			return ErrUserNotFound
 		}
 		return err
 	}
@@ -93,5 +96,5 @@ article, err := s.repo.GetArticleByID(ctx, articleID)
 		return err
 
 	}
-		return ErrForbidden
+	return ErrForbidden
 }

@@ -3,15 +3,15 @@ package dto
 import "time"
 
 type CreateArticleRequest struct {
-	Title   string `json:"title"`
-	Slug    string `json:"slug"`
-	Content string `json:"content"`
+	Title   string `json:"title" binding:"required,min=3,max=255"`
+	Slug    string `json:"slug" binding:"required,min=3,max=255"`
+	Content string `json:"content" binding:"required"`
 }
 
 type UpdateArticleRequest struct {
-	Title   string `json:"title"`
-	Slug    string `json:"slug"`
-	Content string `json:"content"`
+	Title   string `json:"title" binding:"required,min=3,max=255"`
+	Slug    string `json:"slug" binding:"required,min=3,max=255"`
+	Content string `json:"content" binding:"required"`
 }
 
 type ArticleResponse struct {

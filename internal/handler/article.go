@@ -16,7 +16,7 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 	var req dto.CreateArticleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Некорректный JSON",
+			"error": "Некорректные данные",
 		})
 		return
 	}
@@ -43,6 +43,13 @@ func (h *Handler) CreateArticle(c *gin.Context) {
 		req.Content,
 	)
 	if err != nil {
+		if errors.Is(err, service.ErrArticleAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -124,7 +131,7 @@ func (h *Handler) UpdateArticle(c *gin.Context) {
 	var req dto.UpdateArticleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Некорректный JSON",
+			"error": "Некорректные данные",
 		})
 		return
 	}
@@ -246,7 +253,5 @@ func (h *Handler) DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Статья удалена",
-	})
+	c.Status(http.StatusNoContent)
 }

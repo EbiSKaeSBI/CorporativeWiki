@@ -14,6 +14,7 @@ import (
 	"wiki/internal/config"
 	"wiki/internal/handler"
 	"wiki/internal/middleware"
+	"wiki/internal/models"
 	"wiki/internal/repository"
 	"wiki/internal/service"
 )
@@ -26,6 +27,9 @@ func newTestHandler(t *testing.T) (*handler.Handler, *repository.Repository) {
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
+	// Гарантируем схему: тесты подключаются к БД напрямую, минуя старт сервера,
+	// где AutoMigrate живёт в main.go. Без этого тесты падают на чистой БД.
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}), "failed to run migrations")
 	repo := repository.NewRepository(db)
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
