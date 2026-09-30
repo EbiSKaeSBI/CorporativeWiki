@@ -52,11 +52,9 @@ func main() {
 	protected := router.Group("/api")
 	protected.Use(middleware.AuthMiddleware(conf.JwtSecret))
 	admin := protected.Group("/admin")
-	editor := protected.Group("/articles")
+	articles := protected.Group("/articles")
 
-	editor.Use(middleware.RoleMiddleware("admin", "editor"))
 	admin.Use(middleware.RoleMiddleware("admin"))
-
 
 	// @Summary Health check
 	// @Tags Health
@@ -87,6 +85,81 @@ func main() {
 	// @Router /auth/login [post]
 	router.POST("/auth/login", handler.Login)
 	protected.GET("/profile", handler.Profile)
+
+	// --- Articles: CRUD доступен всем авторизованным (права на чужие статьи проверяет Service) ---
+
+	// @Summary List articles
+	// @Tags Articles
+	// @Success 200 {array} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles [get]
+	articles.GET("", handler.GetArticles)
+
+	// @Summary Get article by ID
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id} [get]
+	articles.GET("/:id", handler.GetArticle)
+
+	// @Summary Create article
+	// @Tags Articles
+	// @Accept json
+	// @Param input body dto.CreateArticleRequest true "Article input"
+	// @Success 201 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles [post]
+	articles.POST("", handler.CreateArticle)
+
+	// @Summary Update article (свою; editor/admin — чужие)
+	// @Tags Articles
+	// @Accept json
+	// @Param id path int true "Article ID"
+	// @Param input body dto.UpdateArticleRequest true "Article input"
+	// @Success 200 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id} [put]
+	articles.PUT("/:id", handler.UpdateArticle)
+
+	// @Summary Delete article (soft, только автор или admin)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 204 "No Content"
+	// @Security BearerAuth
+	// @Router /api/articles/{id} [delete]
+	articles.DELETE("/:id", handler.DeleteArticle)
+
+	// @Summary Submit article for review (автор, draft -> pending)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/submit [post]
+	articles.POST("/:id/submit", handler.SubmitArticle)
+
+	// @Summary Approve article (pending -> published, editor/admin)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/approve [post]
+	articles.POST("/:id/approve",
+		middleware.RoleMiddleware("admin", "editor"),
+		handler.ApproveArticle,
+	)
+
+	// @Summary Reject article (pending -> rejected, editor/admin)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {object} dto.ArticleResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/reject [post]
+	articles.POST("/:id/reject",
+		middleware.RoleMiddleware("admin", "editor"),
+		handler.RejectArticle,
+	)
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
 	router.Run(conf.Port)

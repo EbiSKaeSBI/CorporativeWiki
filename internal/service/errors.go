@@ -8,5 +8,6 @@ var (
 	ErrInvalidCredentials   = errors.New("invalid email or password")
 	ErrArticleNotFound      = errors.New("article not found")
 	ErrArticleAlreadyExists = errors.New("article already exists")
+	ErrInvalidArticleStatus = errors.New("invalid article status")
 	ErrForbidden            = errors.New("forbidden")
 )

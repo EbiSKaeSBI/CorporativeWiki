@@ -37,19 +37,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                            "$ref": "#/definitions/dto.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Невалидный или отсутствующий токен",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -75,7 +75,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.LoginRequest"
+                            "$ref": "#/definitions/dto.LoginRequest"
                         }
                     }
                 ],
@@ -83,25 +83,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.LoginResponse"
+                            "$ref": "#/definitions/dto.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Неверный email или пароль",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -127,7 +127,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.RegisterRequest"
+                            "$ref": "#/definitions/dto.RegisterRequest"
                         }
                     }
                 ],
@@ -135,25 +135,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                            "$ref": "#/definitions/dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Пользователь с таким email уже существует",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -205,7 +205,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.CreateUserRequest"
+                            "$ref": "#/definitions/dto.CreateUserRequest"
                         }
                     }
                 ],
@@ -213,25 +213,25 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                            "$ref": "#/definitions/dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Некорректный запрос (невалидный JSON)",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Пользователь с таким email уже существует",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -263,25 +263,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                            "$ref": "#/definitions/dto.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Некорректный ID пользователя",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Пользователь с таким ID не найден",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
-                            "$ref": "#/definitions/wiki_internal_dto.ErrorResponse"
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
                 }
@@ -289,7 +289,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "wiki_internal_dto.CreateUserRequest": {
+        "dto.CreateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -306,7 +306,7 @@ const docTemplate = `{
                 }
             }
         },
-        "wiki_internal_dto.ErrorResponse": {
+        "dto.ErrorResponse": {
             "description": "Стандартный ответ при ошибке",
             "type": "object",
             "properties": {
@@ -316,7 +316,7 @@ const docTemplate = `{
                 }
             }
         },
-        "wiki_internal_dto.LoginRequest": {
+        "dto.LoginRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -327,18 +327,18 @@ const docTemplate = `{
                 }
             }
         },
-        "wiki_internal_dto.LoginResponse": {
+        "dto.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/wiki_internal_dto.UserResponse"
+                    "$ref": "#/definitions/dto.UserResponse"
                 }
             }
         },
-        "wiki_internal_dto.RegisterRequest": {
+        "dto.RegisterRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -352,7 +352,7 @@ const docTemplate = `{
                 }
             }
         },
-        "wiki_internal_dto.UserResponse": {
+        "dto.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {

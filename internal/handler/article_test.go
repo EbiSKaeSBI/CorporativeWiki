@@ -35,14 +35,16 @@ func newArticleHandler(t *testing.T, conf *config.Config) (*handler.Handler, *re
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
 
-// uniqueSlug — генерирует уникальный slug для тестов.
+// uniqueSlug — генерирует уникальный slug для тестов (префикс htest_ — под ним работает очистка).
 func uniqueSlug() string {
-	return fmt.Sprintf("slug_%d", time.Now().UnixNano())
+	return fmt.Sprintf("htest_%d", time.Now().UnixNano())
 }
 
-// cleanupArticles — удаляет статью напрямую через GORM (обходит soft-delete).
+// cleanupArticles — удаляет только тестовые статьи (htest_*) напрямую через GORM,
+// обходя soft-delete. Таблица общая с тестами пакета service, которые идут
+// параллельно: полная зачистка таблицы роняла их на середине работы.
 func cleanupArticles(t *testing.T, db *gorm.DB) {
-	err := db.Unscoped().Where("1 = 1").Delete(&models.Article{}).Error
+	err := db.Unscoped().Where("slug LIKE ?", "htest_%").Delete(&models.Article{}).Error
 	require.NoError(t, err, "failed to cleanup articles")
 }
 
@@ -64,6 +66,9 @@ func setupArticleRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 		api.GET("/articles/:id", h.GetArticle)
 		api.PUT("/articles/:id", h.UpdateArticle)
 		api.DELETE("/articles/:id", h.DeleteArticle)
+		api.POST("/articles/:id/submit", h.SubmitArticle)
+		api.POST("/articles/:id/approve", h.ApproveArticle)
+		api.POST("/articles/:id/reject", h.RejectArticle)
 	}
 
 	return r, repo
@@ -194,7 +199,7 @@ func TestHandler_GetArticle(t *testing.T) {
 
 	article, err := repo.CreateArticle(context.Background(), &models.Article{
 		Title:    "Find Me",
-		Slug:     "find-me",
+		Slug:     "htest_find-me",
 		Content:  "content",
 		AuthorID: user.ID,
 	})
@@ -217,7 +222,7 @@ func TestHandler_GetArticle(t *testing.T) {
 
 	assert.Equal(t, article.ID, resp.ID)
 	assert.Equal(t, "Find Me", resp.Title)
-	assert.Equal(t, "find-me", resp.Slug)
+	assert.Equal(t, "htest_find-me", resp.Slug)
 	assert.Equal(t, user.ID, resp.AuthorID)
 }
 
@@ -292,11 +297,11 @@ func TestHandler_GetArticles_Multiple(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = repo.CreateArticle(context.Background(), &models.Article{
-		Title: "First", Slug: "first", Content: "1", AuthorID: user.ID,
+		Title: "First", Slug: "htest_first", Content: "1", AuthorID: user.ID,
 	})
 	require.NoError(t, err)
 	_, err = repo.CreateArticle(context.Background(), &models.Article{
-		Title: "Second", Slug: "second", Content: "2", AuthorID: user.ID,
+		Title: "Second", Slug: "htest_second", Content: "2", AuthorID: user.ID,
 	})
 	require.NoError(t, err)
 
@@ -330,7 +335,7 @@ func TestHandler_UpdateArticle(t *testing.T) {
 	require.NoError(t, err)
 
 	article, err := repo.CreateArticle(context.Background(), &models.Article{
-		Title: "Old Title", Slug: "old-slug", Content: "old", AuthorID: user.ID,
+		Title: "Old Title", Slug: "htest_old-slug", Content: "old", AuthorID: user.ID,
 	})
 	require.NoError(t, err)
 
@@ -424,7 +429,7 @@ func TestHandler_UpdateArticle_Forbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	article, err := repo.CreateArticle(context.Background(), &models.Article{
-		Title: "Admin Article", Slug: "admin-art", Content: "x", AuthorID: admin.ID,
+		Title: "Admin Article", Slug: "htest_admin-art", Content: "x", AuthorID: admin.ID,
 	})
 	require.NoError(t, err)
 
@@ -437,7 +442,7 @@ func TestHandler_UpdateArticle_Forbidden(t *testing.T) {
 	require.NoError(t, err)
 	viewerToken := testToken(t, viewer.ID)
 
-	body, _ := json.Marshal(dto.UpdateArticleRequest{Title: "Hacked", Slug: "hacked-slug", Content: "hacked body"})
+	body, _ := json.Marshal(dto.UpdateArticleRequest{Title: "Hacked", Slug: "htest_hacked-slug", Content: "hacked body"})
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/articles/%d", article.ID), bytes.NewReader(body))
@@ -475,7 +480,7 @@ func TestHandler_DeleteArticle(t *testing.T) {
 	require.NoError(t, err)
 
 	article, err := repo.CreateArticle(context.Background(), &models.Article{
-		Title: "To Delete", Slug: "to-delete", Content: "x", AuthorID: user.ID,
+		Title: "To Delete", Slug: "htest_to-delete", Content: "x", AuthorID: user.ID,
 	})
 	require.NoError(t, err)
 
@@ -534,7 +539,7 @@ func TestHandler_DeleteArticle_Forbidden(t *testing.T) {
 	require.NoError(t, err)
 
 	article, err := repo.CreateArticle(context.Background(), &models.Article{
-		Title: "Protected", Slug: "protected", Content: "x", AuthorID: admin.ID,
+		Title: "Protected", Slug: "htest_protected", Content: "x", AuthorID: admin.ID,
 	})
 	require.NoError(t, err)
 
@@ -570,4 +575,259 @@ func TestHandler_DeleteArticle_InvalidID(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.JSONEq(t, `{"error":"Некорректный ID статьи"}`, w.Body.String())
+}
+
+// submitArticleReq — шлёт POST /api/articles/:id/submit с данным токеном.
+func submitArticleReq(t *testing.T, r *gin.Engine, articleID uint, token string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/articles/%d/submit", articleID), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func TestHandler_SubmitArticle(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Submitter", Email: uniqueEmail(), PasswordHash: "hash", Role: "viewer",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Ready", Slug: "htest_submit-ok", Content: "x", AuthorID: user.ID,
+	})
+	require.NoError(t, err)
+
+	w := submitArticleReq(t, r, article.ID, testToken(t, user.ID))
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp dto.ArticleResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "pending", resp.Status)
+	assert.Equal(t, article.ID, resp.ID)
+}
+
+func TestHandler_SubmitArticle_Forbidden(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	author, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Real Author", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+	other, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Not Author", Email: uniqueEmail(), PasswordHash: "hash", Role: "admin",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Mine", Slug: "htest_submit-forbidden", Content: "x", AuthorID: author.ID,
+	})
+	require.NoError(t, err)
+
+	w := submitArticleReq(t, r, article.ID, testToken(t, other.ID))
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestHandler_SubmitArticle_InvalidStatus(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Twice Author", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Already Pending", Slug: "htest_submit-twice", Content: "x",
+		AuthorID: user.ID, Status: "pending",
+	})
+	require.NoError(t, err)
+
+	w := submitArticleReq(t, r, article.ID, testToken(t, user.ID))
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.JSONEq(t, `{"error":"invalid article status"}`, w.Body.String())
+}
+
+func TestHandler_SubmitArticle_NotFound(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := submitArticleReq(t, r, 999999, testToken(t, 1))
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandler_SubmitArticle_InvalidID(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles/abc/submit", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+testToken(t, 1))
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_SubmitArticle_NoAuth(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles/1/submit", nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// approveArticleReq — шлёт POST /api/articles/:id/approve с данным токеном.
+func approveArticleReq(t *testing.T, r *gin.Engine, articleID uint, token string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/articles/%d/approve", articleID), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func TestHandler_ApproveArticle(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Approver", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Waiting", Slug: "htest_approve-ok", Content: "x", AuthorID: user.ID, Status: "pending",
+	})
+	require.NoError(t, err)
+
+	w := approveArticleReq(t, r, article.ID, testToken(t, user.ID))
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp dto.ArticleResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "published", resp.Status)
+}
+
+func TestHandler_ApproveArticle_WrongStatus(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Draft Author", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Still Draft", Slug: "htest_approve-draft", Content: "x", AuthorID: user.ID,
+	})
+	require.NoError(t, err)
+
+	w := approveArticleReq(t, r, article.ID, testToken(t, user.ID))
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.JSONEq(t, `{"error":"invalid article status"}`, w.Body.String())
+}
+
+func TestHandler_ApproveArticle_NotFound(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := approveArticleReq(t, r, 999999, testToken(t, 1))
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandler_ApproveArticle_InvalidID(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles/abc/approve", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+testToken(t, 1))
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_ApproveArticle_NoAuth(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles/1/approve", nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// rejectArticleReq — шлёт POST /api/articles/:id/reject с данным токеном.
+func rejectArticleReq(t *testing.T, r *gin.Engine, articleID uint, token string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/articles/%d/reject", articleID), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	return w
+}
+
+func TestHandler_RejectArticle(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Rejector", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Waiting2", Slug: "htest_reject-ok", Content: "x", AuthorID: user.ID, Status: "pending",
+	})
+	require.NoError(t, err)
+
+	w := rejectArticleReq(t, r, article.ID, testToken(t, user.ID))
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp dto.ArticleResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "rejected", resp.Status)
+}
+
+func TestHandler_RejectArticle_WrongStatus(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name: "Draft Author2", Email: uniqueEmail(), PasswordHash: "hash", Role: "editor",
+	})
+	require.NoError(t, err)
+
+	article, err := repo.CreateArticle(context.Background(), &models.Article{
+		Title: "Still Draft2", Slug: "htest_reject-draft", Content: "x", AuthorID: user.ID,
+	})
+	require.NoError(t, err)
+
+	w := rejectArticleReq(t, r, article.ID, testToken(t, user.ID))
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.JSONEq(t, `{"error":"invalid article status"}`, w.Body.String())
+}
+
+func TestHandler_RejectArticle_NotFound(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := rejectArticleReq(t, r, 999999, testToken(t, 1))
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandler_RejectArticle_NoAuth(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles/1/reject", nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }

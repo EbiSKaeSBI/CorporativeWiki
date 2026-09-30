@@ -67,12 +67,90 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 		article.Slug = articleData.Slug
 		article, err = s.repo.UpdateArticle(ctx, article)
 		if err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return nil, ErrArticleAlreadyExists
+			}
 			return nil, err
 		}
 		return article, nil
 	} else {
 		return nil, ErrForbidden
 	}
+}
+
+func (s *Service) SubmitArticle(ctx context.Context, articleID, userID uint) (*models.Article, error) {
+	article, err := s.repo.GetArticleByID(ctx, articleID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrArticleNotFound
+		}
+		return nil, err
+	}
+
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	if user.ID != article.AuthorID {
+		return nil, ErrForbidden
+	}
+
+	if article.Status != "draft" {
+		return nil, ErrInvalidArticleStatus
+	}
+
+	article.Status = "pending"
+	article, err = s.repo.UpdateArticle(ctx, article)
+	if err != nil {
+		return nil, err
+	}
+	return article, nil
+}
+
+func (s *Service) ApproveArticle(ctx context.Context, articleID uint) (*models.Article, error) {
+	article, err := s.repo.GetArticleByID(ctx, articleID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrArticleNotFound
+		}
+		return nil, err
+	}
+
+	if article.Status != "pending" {
+		return nil, ErrInvalidArticleStatus
+	}
+
+	article.Status = "published"
+	article, err = s.repo.UpdateArticle(ctx, article)
+	if err != nil {
+		return nil, err
+	}
+	return article, nil
+}
+
+func (s *Service) RejectArticle(ctx context.Context, articleID uint) (*models.Article, error) {
+	article, err := s.repo.GetArticleByID(ctx, articleID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrArticleNotFound
+		}
+		return nil, err
+	}
+
+	if article.Status != "pending" {
+		return nil, ErrInvalidArticleStatus
+	}
+
+	article.Status = "rejected"
+	article, err = s.repo.UpdateArticle(ctx, article)
+	if err != nil {
+		return nil, err
+	}
+	return article, nil
 }
 
 func (s *Service) DeleteArticle(ctx context.Context, userID, articleID uint) error {
