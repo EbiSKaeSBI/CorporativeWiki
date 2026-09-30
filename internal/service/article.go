@@ -23,6 +23,12 @@ func (s *Service) CreateArticle(ctx context.Context, userID uint, title, slug, c
 		}
 		return nil, err
 	}
+
+	// Revision #1 — первоначальный снимок: история статьи начинается с создания.
+	if _, err := s.CreateArticleRevision(ctx, article, userID); err != nil {
+		return nil, err
+	}
+
 	return article, nil
 }
 
@@ -72,6 +78,12 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 			}
 			return nil, err
 		}
+
+		// Снимок нового состояния: revision создаёт Service, а не Handler.
+		if _, err := s.CreateArticleRevision(ctx, article, userID); err != nil {
+			return nil, err
+		}
+
 		return article, nil
 	} else {
 		return nil, ErrForbidden
@@ -175,4 +187,37 @@ func (s *Service) DeleteArticle(ctx context.Context, userID, articleID uint) err
 
 	}
 	return ErrForbidden
+}
+
+// CreateArticleRevision — снимок текущего содержимого статьи.
+// Публичный метод Service: Handler не собирает models.ArticleRevision сам.
+func (s *Service) CreateArticleRevision(ctx context.Context, article *models.Article, editorID uint) (*models.ArticleRevision, error) {
+	revision := &models.ArticleRevision{
+		ArticleID: article.ID,
+		EditorID:  editorID,
+		Title:     article.Title,
+		Slug:      article.Slug,
+		Content:   article.Content,
+	}
+
+	created, err := s.repo.CreateArticleRevision(ctx, revision)
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+// GetArticleRevisions — история статьи (свежие версии первыми).
+// Проверка существования статьи — здесь, чтобы отдавать ErrArticleNotFound,
+// а не пустой список для несуществующего id.
+func (s *Service) GetArticleRevisions(ctx context.Context, articleID uint) ([]models.ArticleRevision, error) {
+	if _, err := s.GetArticleByID(ctx, articleID); err != nil {
+		return nil, err
+	}
+
+	revisions, err := s.repo.GetArticleRevisions(ctx, articleID)
+	if err != nil {
+		return nil, err
+	}
+	return revisions, nil
 }

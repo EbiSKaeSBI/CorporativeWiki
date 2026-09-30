@@ -9,4 +9,6 @@ type Article struct {
 	Content  string `gorm:"type:text;not null"`
 	AuthorID uint   `gorm:"index;not null"`
 	Status   string `gorm:"type:varchar(20);not null;default:'draft';check:status IN ('draft','pending','published','rejected')"`
+
+	Revisions []ArticleRevision `gorm:"foreignKey:ArticleID"`
 }

@@ -1,5 +1,58 @@
 basePath: /
 definitions:
+  dto.ArticleResponse:
+    properties:
+      author_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      slug:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.ArticleRevisionResponse:
+    properties:
+      article_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      editor_id:
+        type: integer
+      id:
+        type: integer
+      slug:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.CreateArticleRequest:
+    properties:
+      content:
+        type: string
+      slug:
+        maxLength: 255
+        minLength: 3
+        type: string
+      title:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - content
+    - slug
+    - title
+    type: object
   dto.CreateUserRequest:
     properties:
       email:
@@ -41,6 +94,23 @@ definitions:
       password:
         type: string
     type: object
+  dto.UpdateArticleRequest:
+    properties:
+      content:
+        type: string
+      slug:
+        maxLength: 255
+        minLength: 3
+        type: string
+      title:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - content
+    - slug
+    - title
+    type: object
   dto.UserResponse:
     properties:
       created_at:
@@ -63,6 +133,372 @@ info:
   title: Corporate Wiki API
   version: "1.0"
 paths:
+  /api/articles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ArticleResponse'
+            type: array
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Список статей
+      tags:
+      - articles
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую статью в статусе draft; дубликат slug даёт 409. Первая
+        ревизия истории создаётся автоматически
+      parameters:
+      - description: Данные статьи
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Статья с таким slug уже существует
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать статью
+      tags:
+      - articles
+  /api/articles/{id}:
+    delete:
+      description: 'Soft-delete: автор или admin. Возвращает пустое тело'
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Статья удалена
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Нет прав на удаление этой статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удалить статью
+      tags:
+      - articles
+    get:
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить статью по ID
+      tags:
+      - articles
+    put:
+      consumes:
+      - application/json
+      description: Автор может менять свою статью, editor/admin — любую. После успешного
+        изменения создаётся ревизия с новым содержимым
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные статьи
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateArticleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректные данные или ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Нет прав на изменение этой статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Статья с таким slug уже существует
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить статью
+      tags:
+      - articles
+  /api/articles/{id}/approve:
+    post:
+      description: 'Editor/admin: pending -> published. Других переходов Service не
+        допускает'
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Только editor/admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Статья не в статусе pending
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Одобрить статью
+      tags:
+      - articles
+  /api/articles/{id}/reject:
+    post:
+      description: 'Editor/admin: pending -> rejected. Причина отклонения — позже
+        с AuditLog'
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Только editor/admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Статья не в статусе pending
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отклонить статью
+      tags:
+      - articles
+  /api/articles/{id}/revisions:
+    get:
+      description: Ревизии содержимого, свежие первыми. Доступна всем авторизованным
+        до появления ArticlePermission
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ArticleRevisionResponse'
+            type: array
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья не найдена
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: История изменений статьи
+      tags:
+      - articles
+  /api/articles/{id}/submit:
+    post:
+      description: 'Только автор и только из статуса draft: draft -> pending'
+      parameters:
+      - description: ID статьи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ArticleResponse'
+        "400":
+          description: Некорректный ID статьи
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Невалидный или отсутствующий токен
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Отправить на модерацию может только автор
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Статья или пользователь не найдены
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Статья не в статусе draft
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Отправить статью на модерацию
+      tags:
+      - articles
   /api/profile:
     get:
       consumes:

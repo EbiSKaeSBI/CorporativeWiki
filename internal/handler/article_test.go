@@ -30,7 +30,7 @@ func newArticleHandler(t *testing.T, conf *config.Config) (*handler.Handler, *re
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
 	// Гарантируем схему до запуска тестов (см. комментарий в newTestHandler).
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}), "failed to run migrations")
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}), "failed to run migrations")
 	repo := repository.NewRepository(db)
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
@@ -44,7 +44,10 @@ func uniqueSlug() string {
 // обходя soft-delete. Таблица общая с тестами пакета service, которые идут
 // параллельно: полная зачистка таблицы роняла их на середине работы.
 func cleanupArticles(t *testing.T, db *gorm.DB) {
-	err := db.Unscoped().Where("slug LIKE ?", "htest_%").Delete(&models.Article{}).Error
+	// Ревизии висят FK на articles — чистим сначала их, иначе DELETE статей упадёт.
+	err := db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
+	require.NoError(t, err, "failed to cleanup article revisions")
+	err = db.Unscoped().Where("slug LIKE ?", "htest_%").Delete(&models.Article{}).Error
 	require.NoError(t, err, "failed to cleanup articles")
 }
 
@@ -66,6 +69,7 @@ func setupArticleRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 		api.GET("/articles/:id", h.GetArticle)
 		api.PUT("/articles/:id", h.UpdateArticle)
 		api.DELETE("/articles/:id", h.DeleteArticle)
+		api.GET("/articles/:id/revisions", h.GetArticleRevisions)
 		api.POST("/articles/:id/submit", h.SubmitArticle)
 		api.POST("/articles/:id/approve", h.ApproveArticle)
 		api.POST("/articles/:id/reject", h.RejectArticle)
@@ -826,6 +830,132 @@ func TestHandler_RejectArticle_NoAuth(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodPost, "/api/articles/1/reject", nil)
+	require.NoError(t, err)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestHandler_GetArticleRevisions(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name:         "Revision Watcher",
+		Email:        uniqueEmail(),
+		PasswordHash: "hash",
+		Role:         "editor",
+	})
+	require.NoError(t, err)
+	token := testToken(t, user.ID)
+
+	// Создаём статью (Revision #1) и обновляем её (Revision #2).
+	slug := uniqueSlug()
+	body, err := json.Marshal(dto.CreateArticleRequest{
+		Title:   "History Article",
+		Slug:    slug,
+		Content: "first version",
+	})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/articles", bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	var created dto.ArticleResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &created))
+
+	updateBody, err := json.Marshal(dto.UpdateArticleRequest{
+		Title:   "History Article v2",
+		Slug:    slug + "-b",
+		Content: "second version",
+	})
+	require.NoError(t, err)
+
+	w = httptest.NewRecorder()
+	req, err = http.NewRequest(http.MethodPut, "/api/articles/"+fmt.Sprint(created.ID), bytes.NewReader(updateBody))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+
+	w = httptest.NewRecorder()
+	req, err = http.NewRequest(http.MethodGet, "/api/articles/"+fmt.Sprint(created.ID)+"/revisions", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var revisions []dto.ArticleRevisionResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &revisions))
+	require.Len(t, revisions, 2)
+
+	// свежие первыми; каждая ревизия — снимок, а не ссылка на текущую статью
+	assert.Equal(t, "History Article v2", revisions[0].Title)
+	assert.Equal(t, "second version", revisions[0].Content)
+	assert.Equal(t, created.ID, revisions[0].ArticleID)
+	assert.Equal(t, user.ID, revisions[0].EditorID)
+
+	assert.Equal(t, "History Article", revisions[1].Title)
+	assert.Equal(t, slug, revisions[1].Slug)
+	assert.Equal(t, "first version", revisions[1].Content)
+}
+
+func TestHandler_GetArticleRevisions_NotFound(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name:         "No Revisions",
+		Email:        uniqueEmail(),
+		PasswordHash: "hash",
+		Role:         "viewer",
+	})
+	require.NoError(t, err)
+	token := testToken(t, user.ID)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/articles/99999999/revisions", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandler_GetArticleRevisions_InvalidID(t *testing.T) {
+	r, repo := setupArticleRouter(t)
+	defer cleanupArticles(t, repo.GetDB())
+
+	user, err := repo.CreateUser(context.Background(), &models.User{
+		Name:         "Bad ID",
+		Email:        uniqueEmail(),
+		PasswordHash: "hash",
+		Role:         "viewer",
+	})
+	require.NoError(t, err)
+	token := testToken(t, user.ID)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/articles/abc/revisions", nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHandler_GetArticleRevisions_NoAuth(t *testing.T) {
+	r, _ := setupArticleRouter(t)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/api/articles/1/revisions", nil)
 	require.NoError(t, err)
 	r.ServeHTTP(w, req)
 

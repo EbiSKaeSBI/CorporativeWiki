@@ -39,7 +39,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.AutoMigrate(&models.User{}, &models.Article{})
+	err = db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{})
 	if err != nil {
 		log.Println(err)
 	}
@@ -159,6 +159,14 @@ func main() {
 		middleware.RoleMiddleware("admin", "editor"),
 		handler.RejectArticle,
 	)
+
+	// @Summary Get article revision history (newest first)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {array} dto.ArticleRevisionResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/revisions [get]
+	articles.GET("/:id/revisions", handler.GetArticleRevisions)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")
