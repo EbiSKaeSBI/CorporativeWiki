@@ -134,10 +134,15 @@ func (s *Service) SubmitArticle(ctx context.Context, articleID, userID uint) (*m
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := s.CreateAuditLog(ctx, userID, AuditArticleSubmitted, uintPtr(articleID), nil, "status=pending"); err != nil {
+		return nil, err
+	}
+
 	return article, nil
 }
 
-func (s *Service) ApproveArticle(ctx context.Context, articleID uint) (*models.Article, error) {
+func (s *Service) ApproveArticle(ctx context.Context, articleID, userID uint) (*models.Article, error) {
 	article, err := s.repo.GetArticleByID(ctx, articleID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -155,10 +160,15 @@ func (s *Service) ApproveArticle(ctx context.Context, articleID uint) (*models.A
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := s.CreateAuditLog(ctx, userID, AuditArticleApproved, uintPtr(articleID), nil, "status=published"); err != nil {
+		return nil, err
+	}
+
 	return article, nil
 }
 
-func (s *Service) RejectArticle(ctx context.Context, articleID uint) (*models.Article, error) {
+func (s *Service) RejectArticle(ctx context.Context, articleID, userID uint) (*models.Article, error) {
 	article, err := s.repo.GetArticleByID(ctx, articleID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -176,6 +186,11 @@ func (s *Service) RejectArticle(ctx context.Context, articleID uint) (*models.Ar
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := s.CreateAuditLog(ctx, userID, AuditArticleRejected, uintPtr(articleID), nil, "status=rejected"); err != nil {
+		return nil, err
+	}
+
 	return article, nil
 }
 

@@ -428,7 +428,13 @@ func (h *Handler) ApproveArticle(c *gin.Context) {
 		return
 	}
 
-	article, err := h.service.ApproveArticle(c.Request.Context(), uint(articleID))
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Требуется авторизация"})
+		return
+	}
+
+	article, err := h.service.ApproveArticle(c.Request.Context(), uint(articleID), userID.(uint))
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrArticleNotFound):
@@ -484,7 +490,13 @@ func (h *Handler) RejectArticle(c *gin.Context) {
 		return
 	}
 
-	article, err := h.service.RejectArticle(c.Request.Context(), uint(articleID))
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Требуется авторизация"})
+		return
+	}
+
+	article, err := h.service.RejectArticle(c.Request.Context(), uint(articleID), userID.(uint))
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrArticleNotFound):

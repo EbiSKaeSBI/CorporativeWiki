@@ -116,26 +116,26 @@ func TestApproveArticle(t *testing.T) {
 	require.NoError(t, err)
 
 	// draft → approve запрещён
-	_, err = svc.ApproveArticle(context.Background(), article.ID)
+	_, err = svc.ApproveArticle(context.Background(), article.ID, user.ID)
 	assert.ErrorIs(t, err, service.ErrInvalidArticleStatus)
 
 	// draft → pending → approve разрешён
 	_, err = svc.SubmitArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
 
-	published, err := svc.ApproveArticle(context.Background(), article.ID)
+	published, err := svc.ApproveArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "published", published.Status)
 
 	// повторный approve опубликованной статьи запрещён
-	_, err = svc.ApproveArticle(context.Background(), article.ID)
+	_, err = svc.ApproveArticle(context.Background(), article.ID, user.ID)
 	assert.ErrorIs(t, err, service.ErrInvalidArticleStatus)
 }
 
 func TestApproveArticle_NotFound(t *testing.T) {
 	svc, _ := newArticleService(t)
 
-	_, err := svc.ApproveArticle(context.Background(), 999999)
+	_, err := svc.ApproveArticle(context.Background(), 999999, 1)
 	assert.ErrorIs(t, err, service.ErrArticleNotFound)
 }
 
@@ -150,26 +150,26 @@ func TestRejectArticle(t *testing.T) {
 	require.NoError(t, err)
 
 	// draft → reject запрещён
-	_, err = svc.RejectArticle(context.Background(), article.ID)
+	_, err = svc.RejectArticle(context.Background(), article.ID, user.ID)
 	assert.ErrorIs(t, err, service.ErrInvalidArticleStatus)
 
 	// draft → pending → reject разрешён
 	_, err = svc.SubmitArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
 
-	rejected, err := svc.RejectArticle(context.Background(), article.ID)
+	rejected, err := svc.RejectArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "rejected", rejected.Status)
 
 	// повторный reject запрещён
-	_, err = svc.RejectArticle(context.Background(), article.ID)
+	_, err = svc.RejectArticle(context.Background(), article.ID, user.ID)
 	assert.ErrorIs(t, err, service.ErrInvalidArticleStatus)
 }
 
 func TestRejectArticle_NotFound(t *testing.T) {
 	svc, _ := newArticleService(t)
 
-	_, err := svc.RejectArticle(context.Background(), 999999)
+	_, err := svc.RejectArticle(context.Background(), 999999, 1)
 	assert.ErrorIs(t, err, service.ErrArticleNotFound)
 }
 
@@ -244,7 +244,7 @@ func TestArticleRevision_NotCreatedOnWorkflow(t *testing.T) {
 	// новых ревизий быть не должно (AuditLog будет позже).
 	_, err = svc.SubmitArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
-	_, err = svc.ApproveArticle(context.Background(), article.ID)
+	_, err = svc.ApproveArticle(context.Background(), article.ID, user.ID)
 	require.NoError(t, err)
 
 	revisions, err := svc.GetArticleRevisions(context.Background(), article.ID)
