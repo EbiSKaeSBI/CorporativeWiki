@@ -22,7 +22,7 @@ func newArticleService(t *testing.T) (*service.Service, *gorm.DB) {
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}), "failed to run migrations")
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}, &models.AuditLog{}), "failed to run migrations")
 	return service.NewService(repository.NewRepository(db), conf), db
 }
 

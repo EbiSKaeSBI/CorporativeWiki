@@ -30,7 +30,7 @@ func newArticleHandler(t *testing.T, conf *config.Config) (*handler.Handler, *re
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
 	// Гарантируем схему до запуска тестов (см. комментарий в newTestHandler).
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}), "failed to run migrations")
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}, &models.AuditLog{}), "failed to run migrations")
 	repo := repository.NewRepository(db)
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
