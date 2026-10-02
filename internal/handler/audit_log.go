@@ -101,4 +101,3 @@ func (h *Handler) GetAuditLogs(c *gin.Context) {
 		Total: total,
 	})
 }
-
