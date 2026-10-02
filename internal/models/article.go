@@ -11,4 +11,6 @@ type Article struct {
 	Status   string `gorm:"type:varchar(20);not null;default:'draft';check:status IN ('draft','pending','published','rejected')"`
 
 	Revisions []ArticleRevision `gorm:"foreignKey:ArticleID"`
+
+	Permissions []ArticlePermission `gorm:"foreignKey:ArticleID"`
 }
