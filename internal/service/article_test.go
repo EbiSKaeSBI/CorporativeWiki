@@ -31,8 +31,10 @@ func uniqueArticleSlug() string {
 }
 
 func cleanupArticlesBySlugs(t *testing.T, db *gorm.DB, slugs ...string) {
-	// permissions и revisions висят FK на articles — сначала они, потом статьи.
-	err := db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
+	// audit_logs и permissions висят FK на articles — сначала они, потом статьи.
+	err := db.Unscoped().Exec("DELETE FROM audit_logs WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
+	require.NoError(t, err, "failed to cleanup audit logs")
+	err = db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
 	require.NoError(t, err, "failed to cleanup article permissions")
 	err = db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
 	require.NoError(t, err, "failed to cleanup article revisions")

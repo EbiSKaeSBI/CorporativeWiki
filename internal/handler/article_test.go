@@ -44,8 +44,10 @@ func uniqueSlug() string {
 // обходя soft-delete. Таблица общая с тестами пакета service, которые идут
 // параллельно: полная зачистка таблицы роняла их на середине работы.
 func cleanupArticles(t *testing.T, db *gorm.DB) {
-	// Ревизии висят FK на articles — чистим сначала их, иначе DELETE статей упадёт.
-	err := db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
+	// Ревизии, permissions и audit-логи висят FK на articles — чистим сначала их.
+	err := db.Unscoped().Exec("DELETE FROM audit_logs WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
+	require.NoError(t, err, "failed to cleanup audit logs")
+	err = db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
 	require.NoError(t, err, "failed to cleanup article permissions")
 	err = db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
 	require.NoError(t, err, "failed to cleanup article revisions")
