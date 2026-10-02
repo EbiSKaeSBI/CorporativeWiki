@@ -65,11 +65,25 @@ func (s *Service) CreateArticlePermission(ctx context.Context, actorID uint, art
 			}
 			return nil, err
 		}
+
+		if _, err := s.CreateAuditLog(ctx, actorID, AuditPermissionGranted, uintPtr(articleID), uintPtr(userID), "permission="+permission); err != nil {
+			return nil, err
+		}
+
 		return created, nil
 	}
 
 	existing.Permission = permission
-	return s.repo.UpdateArticlePermission(ctx, existing)
+	updated, err := s.repo.UpdateArticlePermission(ctx, existing)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.CreateAuditLog(ctx, actorID, AuditPermissionGranted, uintPtr(articleID), uintPtr(userID), "permission="+permission); err != nil {
+		return nil, err
+	}
+
+	return updated, nil
 }
 
 func (s *Service) GetArticlePermission(ctx context.Context, articleID uint, userID uint) (*models.ArticlePermission, error) {
@@ -114,11 +128,20 @@ func (s *Service) DeleteArticlePermission(ctx context.Context, actorID uint, art
 		return err
 	}
 
-	if _, err := s.GetArticlePermission(ctx, articleID, userID); err != nil {
+	revoked, err := s.GetArticlePermission(ctx, articleID, userID)
+	if err != nil {
 		return err
 	}
 
-	return s.repo.DeleteArticlePermission(ctx, articleID, userID)
+	if err := s.repo.DeleteArticlePermission(ctx, articleID, userID); err != nil {
+		return err
+	}
+
+	if _, err := s.CreateAuditLog(ctx, actorID, AuditPermissionRevoked, uintPtr(articleID), uintPtr(userID), "permission="+revoked.Permission); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) HasArticlePermission(ctx context.Context, articleID uint, userID uint, requiredPermission string) (bool, error) {
