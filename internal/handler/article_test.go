@@ -80,6 +80,7 @@ func setupArticleRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 		api.POST("/articles/:id/submit", h.SubmitArticle)
 		api.POST("/articles/:id/approve", h.ApproveArticle)
 		api.POST("/articles/:id/reject", h.RejectArticle)
+		api.GET("/admin/audit-logs", middleware.RoleMiddleware("admin"), h.GetAuditLogs)
 	}
 
 	return r, repo
