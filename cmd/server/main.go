@@ -68,6 +68,7 @@ func main() {
 	// @Success 200 {object} models.User
 	// @Router /users/{id} [get]
 	admin.GET("/users/:id", handler.GetUserByID)
+	admin.GET("/audit-logs", handler.GetAuditLogs)
 
 	// @Summary Register new user
 	// @Tags Auth
