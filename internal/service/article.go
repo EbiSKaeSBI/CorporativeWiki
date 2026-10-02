@@ -28,6 +28,10 @@ func (s *Service) CreateArticle(ctx context.Context, userID uint, title, slug, c
 		return nil, err
 	}
 
+	if _, err := s.CreateAuditLog(ctx, userID, AuditArticleCreated, uintPtr(article.ID), nil, "title="+title); err != nil {
+		return nil, err
+	}
+
 	return article, nil
 }
 
@@ -87,6 +91,10 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 		}
 
 		if _, err := s.CreateArticleRevision(ctx, article, userID); err != nil {
+			return nil, err
+		}
+
+		if _, err := s.CreateAuditLog(ctx, userID, AuditArticleUpdated, uintPtr(article.ID), nil, ""); err != nil {
 			return nil, err
 		}
 
@@ -188,9 +196,15 @@ func (s *Service) DeleteArticle(ctx context.Context, userID, articleID uint) err
 		return err
 	}
 	if user.Role == "admin" || article.AuthorID == user.ID {
-		err := s.repo.DeleteArticle(ctx, articleID)
-		return err
+		if err := s.repo.DeleteArticle(ctx, articleID); err != nil {
+			return err
+		}
 
+		if _, err := s.CreateAuditLog(ctx, userID, AuditArticleDeleted, uintPtr(articleID), nil, ""); err != nil {
+			return err
+		}
+
+		return nil
 	}
 	return ErrForbidden
 }

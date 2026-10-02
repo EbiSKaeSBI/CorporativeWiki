@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+func uintPtr(u uint) *uint { return &u }
+
 func (s *Service) CreateAuditLog(ctx context.Context, actorID uint, action string, articleID, targetUserID *uint, details string) (*models.AuditLog, error) {
 	_, err := s.repo.GetUserByID(ctx, actorID)
 	if err != nil {
