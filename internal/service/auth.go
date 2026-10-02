@@ -15,7 +15,16 @@ type LoginResult struct {
 }
 
 func (s *Service) Register(ctx context.Context, name, email, password string) (*models.User, error) {
-	return s.CreateUser(ctx, name, email, password, "viewer")
+	user, err := s.CreateUser(ctx, name, email, password, "viewer")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := s.CreateAuditLog(ctx, user.ID, AuditUserCreated, nil, uintPtr(user.ID), "role=viewer"); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (*LoginResult, error) {
@@ -33,6 +42,11 @@ func (s *Service) Login(ctx context.Context, email, password string) (*LoginResu
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := s.CreateAuditLog(ctx, user.ID, AuditUserLogin, nil, nil, ""); err != nil {
+		return nil, err
+	}
+
 	return &LoginResult{
 		User: user,
 		AccessToken: token,
