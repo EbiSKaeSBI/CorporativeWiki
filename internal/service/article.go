@@ -24,7 +24,6 @@ func (s *Service) CreateArticle(ctx context.Context, userID uint, title, slug, c
 		return nil, err
 	}
 
-	// Revision #1 — первоначальный снимок: история статьи начинается с создания.
 	if _, err := s.CreateArticleRevision(ctx, article, userID); err != nil {
 		return nil, err
 	}
@@ -67,7 +66,15 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 		}
 		return nil, err
 	}
-	if user.Role == "editor" || user.Role == "admin" || user.ID == article.AuthorID {
+	canEdit := user.Role == "editor" || user.Role == "admin" || user.ID == article.AuthorID
+	if !canEdit {
+		hasPerm, err := s.HasArticlePermission(ctx, articleID, userID, PermissionEdit)
+		if err != nil {
+			return nil, err
+		}
+		canEdit = hasPerm
+	}
+	if canEdit {
 		article.Title = articleData.Title
 		article.Content = articleData.Content
 		article.Slug = articleData.Slug
@@ -79,7 +86,6 @@ func (s *Service) UpdateArticle(ctx context.Context, articleID, userID uint, art
 			return nil, err
 		}
 
-		// Снимок нового состояния: revision создаёт Service, а не Handler.
 		if _, err := s.CreateArticleRevision(ctx, article, userID); err != nil {
 			return nil, err
 		}
@@ -189,8 +195,6 @@ func (s *Service) DeleteArticle(ctx context.Context, userID, articleID uint) err
 	return ErrForbidden
 }
 
-// CreateArticleRevision — снимок текущего содержимого статьи.
-// Публичный метод Service: Handler не собирает models.ArticleRevision сам.
 func (s *Service) CreateArticleRevision(ctx context.Context, article *models.Article, editorID uint) (*models.ArticleRevision, error) {
 	revision := &models.ArticleRevision{
 		ArticleID: article.ID,
@@ -207,9 +211,6 @@ func (s *Service) CreateArticleRevision(ctx context.Context, article *models.Art
 	return created, nil
 }
 
-// GetArticleRevisions — история статьи (свежие версии первыми).
-// Проверка существования статьи — здесь, чтобы отдавать ErrArticleNotFound,
-// а не пустой список для несуществующего id.
 func (s *Service) GetArticleRevisions(ctx context.Context, articleID uint) ([]models.ArticleRevision, error) {
 	if _, err := s.GetArticleByID(ctx, articleID); err != nil {
 		return nil, err

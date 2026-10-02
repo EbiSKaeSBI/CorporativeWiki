@@ -30,7 +30,7 @@ func newArticleHandler(t *testing.T, conf *config.Config) (*handler.Handler, *re
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
 	// Гарантируем схему до запуска тестов (см. комментарий в newTestHandler).
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}), "failed to run migrations")
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}), "failed to run migrations")
 	repo := repository.NewRepository(db)
 	return handler.NewHandler(service.NewService(repo, conf)), repo
 }
@@ -45,7 +45,9 @@ func uniqueSlug() string {
 // параллельно: полная зачистка таблицы роняла их на середине работы.
 func cleanupArticles(t *testing.T, db *gorm.DB) {
 	// Ревизии висят FK на articles — чистим сначала их, иначе DELETE статей упадёт.
-	err := db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
+	err := db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
+	require.NoError(t, err, "failed to cleanup article permissions")
+	err = db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug LIKE ?)", "htest_%").Error
 	require.NoError(t, err, "failed to cleanup article revisions")
 	err = db.Unscoped().Where("slug LIKE ?", "htest_%").Delete(&models.Article{}).Error
 	require.NoError(t, err, "failed to cleanup articles")
@@ -70,6 +72,9 @@ func setupArticleRouter(t *testing.T) (*gin.Engine, *repository.Repository) {
 		api.PUT("/articles/:id", h.UpdateArticle)
 		api.DELETE("/articles/:id", h.DeleteArticle)
 		api.GET("/articles/:id/revisions", h.GetArticleRevisions)
+		api.GET("/articles/:id/permissions", h.GetArticlePermissions)
+		api.POST("/articles/:id/permissions", middleware.RoleMiddleware("admin"), h.CreateArticlePermission)
+		api.DELETE("/articles/:id/permissions/:userID", middleware.RoleMiddleware("admin"), h.DeleteArticlePermission)
 		api.POST("/articles/:id/submit", h.SubmitArticle)
 		api.POST("/articles/:id/approve", h.ApproveArticle)
 		api.POST("/articles/:id/reject", h.RejectArticle)

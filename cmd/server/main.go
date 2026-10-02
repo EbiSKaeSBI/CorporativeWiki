@@ -86,8 +86,6 @@ func main() {
 	router.POST("/auth/login", handler.Login)
 	protected.GET("/profile", handler.Profile)
 
-	// --- Articles: CRUD доступен всем авторизованным (права на чужие статьи проверяет Service) ---
-
 	// @Summary List articles
 	// @Tags Articles
 	// @Success 200 {array} dto.ArticleResponse
@@ -167,6 +165,47 @@ func main() {
 	// @Security BearerAuth
 	// @Router /api/articles/{id}/revisions [get]
 	articles.GET("/:id/revisions", handler.GetArticleRevisions)
+
+	// @Summary List article permissions
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Success 200 {array} dto.ArticlePermissionResponse
+	// @Failure 400 {object} dto.ErrorResponse
+	// @Failure 401 {object} dto.ErrorResponse
+	// @Failure 404 {object} dto.ErrorResponse
+	// @Failure 500 {object} dto.ErrorResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/permissions [get]
+	articles.GET("/:id/permissions", handler.GetArticlePermissions)
+
+	// @Summary Grant or update article permission (admin only)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Param body body dto.CreateArticlePermissionRequest true "Permission payload"
+	// @Success 201 {object} dto.ArticlePermissionResponse
+	// @Failure 400 {object} dto.ErrorResponse
+	// @Failure 401 {object} dto.ErrorResponse
+	// @Failure 403 {object} dto.ErrorResponse
+	// @Failure 404 {object} dto.ErrorResponse
+	// @Failure 409 {object} dto.ErrorResponse
+	// @Failure 500 {object} dto.ErrorResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/permissions [post]
+	articles.POST("/:id/permissions", middleware.RoleMiddleware("admin"), handler.CreateArticlePermission)
+
+	// @Summary Revoke article permission (admin only)
+	// @Tags Articles
+	// @Param id path int true "Article ID"
+	// @Param userID path int true "User ID"
+	// @Success 204 "No Content"
+	// @Failure 400 {object} dto.ErrorResponse
+	// @Failure 401 {object} dto.ErrorResponse
+	// @Failure 403 {object} dto.ErrorResponse
+	// @Failure 404 {object} dto.ErrorResponse
+	// @Failure 500 {object} dto.ErrorResponse
+	// @Security BearerAuth
+	// @Router /api/articles/{id}/permissions/{userID} [delete]
+	articles.DELETE("/:id/permissions/:userID", middleware.RoleMiddleware("admin"), handler.DeleteArticlePermission)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	log.Println("Swagger доступен по адресу: http://localhost:8080/swagger/index.html")

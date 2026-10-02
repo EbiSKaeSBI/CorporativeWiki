@@ -22,7 +22,7 @@ func newArticleService(t *testing.T) (*service.Service, *gorm.DB) {
 	conf := config.Load()
 	db, err := database.Connect(conf)
 	require.NoError(t, err, "failed to connect to database")
-	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}), "failed to run migrations")
+	require.NoError(t, db.AutoMigrate(&models.User{}, &models.Article{}, &models.ArticleRevision{}, &models.ArticlePermission{}), "failed to run migrations")
 	return service.NewService(repository.NewRepository(db), conf), db
 }
 
@@ -31,8 +31,10 @@ func uniqueArticleSlug() string {
 }
 
 func cleanupArticlesBySlugs(t *testing.T, db *gorm.DB, slugs ...string) {
-	// article_revisions связаны FK на articles — сначала снимки, потом статьи.
-	err := db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
+	// permissions и revisions висят FK на articles — сначала они, потом статьи.
+	err := db.Unscoped().Exec("DELETE FROM article_permissions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
+	require.NoError(t, err, "failed to cleanup article permissions")
+	err = db.Unscoped().Exec("DELETE FROM article_revisions WHERE article_id IN (SELECT id FROM articles WHERE slug IN ?)", slugs).Error
 	require.NoError(t, err, "failed to cleanup article revisions")
 	err = db.Unscoped().Where("slug IN ?", slugs).Delete(&models.Article{}).Error
 	require.NoError(t, err, "failed to cleanup articles")

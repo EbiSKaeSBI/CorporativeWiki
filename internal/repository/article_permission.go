@@ -2,13 +2,12 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"wiki/internal/models"
-)
 
-// Article-level thin passthrough: никаких бизнес-проверок (валидация
-// permission, существование статьи/user'a, маппинг ErrRecordNotFound) здесь
-// нет — это задача Service.
+	"gorm.io/gorm"
+)
 
 func (r *Repository) CreateArticlePermission(ctx context.Context, permission *models.ArticlePermission) (*models.ArticlePermission, error) {
 	if err := r.db.WithContext(ctx).Create(permission).Error; err != nil {
@@ -17,9 +16,6 @@ func (r *Repository) CreateArticlePermission(ctx context.Context, permission *mo
 	return permission, nil
 }
 
-// GetArticlePermission — конкретная связка (article, user). Если записи нет,
-// возвращает gorm.ErrRecordNotFound как есть: Service сам решит, что это
-// ErrArticlePermissionNotFound.
 func (r *Repository) GetArticlePermission(ctx context.Context, articleID, userID uint) (*models.ArticlePermission, error) {
 	var permission models.ArticlePermission
 	if err := r.db.WithContext(ctx).
@@ -30,7 +26,6 @@ func (r *Repository) GetArticlePermission(ctx context.Context, articleID, userID
 	return &permission, nil
 }
 
-// GetArticlePermissions — все права на статью, старые первыми.
 func (r *Repository) GetArticlePermissions(ctx context.Context, articleID uint) ([]models.ArticlePermission, error) {
 	var permissions []models.ArticlePermission
 	if err := r.db.WithContext(ctx).
@@ -42,9 +37,6 @@ func (r *Repository) GetArticlePermissions(ctx context.Context, articleID uint) 
 	return permissions, nil
 }
 
-// DeleteArticlePermission — удаляет связку (article, user). С gorm.Model это
-// soft delete: строка остаётся и продолжает занимать уникальный индекс
-// uix_article_user — см. заметку Service-слоя про повторную выдачу права.
 func (r *Repository) DeleteArticlePermission(ctx context.Context, articleID, userID uint) error {
 	var permission models.ArticlePermission
 	if err := r.db.WithContext(ctx).
@@ -53,4 +45,29 @@ func (r *Repository) DeleteArticlePermission(ctx context.Context, articleID, use
 		return err
 	}
 	return nil
+}
+
+func (r *Repository) GetArticlePermissionIncludeDeleted(ctx context.Context, articleID, userID uint) (*models.ArticlePermission, error) {
+	var permission models.ArticlePermission
+	if err := r.db.WithContext(ctx).Unscoped().
+		Where("article_id = ? AND user_id = ?", articleID, userID).
+		First(&permission).Error; err != nil {
+		return nil, err
+	}
+	return &permission, nil
+}
+
+func (r *Repository) UpdateArticlePermission(ctx context.Context, permission *models.ArticlePermission) (*models.ArticlePermission, error) {
+	if err := r.db.WithContext(ctx).Unscoped().
+		Model(&models.ArticlePermission{}).
+		Where("id = ?", permission.ID).
+		Updates(map[string]any{
+			"permission": permission.Permission,
+			"deleted_at": nil,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
+		return nil, err
+	}
+	permission.DeletedAt = gorm.DeletedAt{}
+	return permission, nil
 }
