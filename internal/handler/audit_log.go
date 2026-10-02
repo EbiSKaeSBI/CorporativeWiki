@@ -38,12 +38,12 @@ func (h *Handler) GetAuditLogs(c *gin.Context) {
 	}
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil {
+	if err != nil || page < 1 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page"})
 		return
 	}
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if err != nil {
+	if err != nil || limit < 1 || limit > 100 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid limit"})
 		return
 	}

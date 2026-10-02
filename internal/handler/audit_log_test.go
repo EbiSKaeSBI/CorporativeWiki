@@ -172,4 +172,9 @@ func TestHandler_AuditLogsPaginationAndFilters(t *testing.T) {
 
 	w = auditGet(t, s, "/api/admin/audit-logs?page=abc", adminTok)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	for _, bad := range []string{"page=0", "page=-1", "limit=0", "limit=101", "limit=-5"} {
+		w = auditGet(t, s, "/api/admin/audit-logs?"+bad, adminTok)
+		assert.Equal(t, http.StatusBadRequest, w.Code, "ожидался 400 для ?"+bad)
+	}
 }
