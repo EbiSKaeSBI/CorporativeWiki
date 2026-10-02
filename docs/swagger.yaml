@@ -51,6 +51,36 @@ definitions:
       title:
         type: string
     type: object
+  dto.AuditLogListResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.AuditLogResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.AuditLogResponse:
+    properties:
+      action:
+        type: string
+      actor_id:
+        type: integer
+      article_id:
+        type: integer
+      created_at:
+        type: string
+      details:
+        type: string
+      id:
+        type: integer
+      target_user_id:
+        type: integer
+    type: object
   dto.CreateArticlePermissionRequest:
     properties:
       permission:
@@ -161,6 +191,68 @@ info:
   title: Corporate Wiki API
   version: "1.0"
 paths:
+  /api/admin/audit-logs:
+    get:
+      consumes:
+      - application/json
+      description: 'Пагинация и фильтры: action, actor_id, article_id'
+      parameters:
+      - description: страница (по умолчанию 1)
+        in: query
+        name: page
+        type: integer
+      - description: размер страницы (по умолчанию 20, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: фильтр по действию
+        in: query
+        name: action
+        type: string
+      - description: фильтр по актору
+        in: query
+        name: actor_id
+        type: integer
+      - description: фильтр по статье
+        in: query
+        name: article_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuditLogListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Список audit-логов (админ)
+      tags:
+      - audit
   /api/articles:
     get:
       produces:
