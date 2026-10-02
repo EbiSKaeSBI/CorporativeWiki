@@ -2,9 +2,6 @@ package models
 
 import "gorm.io/gorm"
 
-// ArticleRevision — снимок содержимого статьи на момент изменения.
-// Хранит Title/Slug/Content копии, а не ссылку на Article: ревизия должна
-// пережить последующие правки самой статьи (история не теряется).
 type ArticleRevision struct {
 	gorm.Model
 

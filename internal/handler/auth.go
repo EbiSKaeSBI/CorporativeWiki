@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Register создаёт нового пользователя (публичная регистрация)
 // @Summary Регистрация
 // @Description Создаёт нового пользователя через публичный эндпоинт регистрации
 // @Tags auth
@@ -60,7 +59,6 @@ func (h *Handler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// Login выполняет аутентификацию пользователя
 // @Summary Вход в систему
 // @Description Проверяет логин и пароль, возвращает JWT-токен и данные пользователя
 // @Tags auth
@@ -110,7 +108,6 @@ func (h *Handler) Login(c *gin.Context) {
 	})
 }
 
-// Profile возвращает профиль текущего авторизованного пользователя
 // @Summary Профиль пользователя
 // @Description Возвращает данные текущего пользователя по JWT-токену в заголовке Authorization
 // @Tags auth

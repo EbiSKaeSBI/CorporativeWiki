@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateUser создаёт нового пользователя через сервисный слой
 // @Summary Создать пользователя
 // @Description Создаёт нового пользователя в системе (административный эндпоинт)
 // @Tags users
@@ -61,7 +60,6 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// GetUserByID возвращает пользователя по идентификатору
 // @Summary Получить пользователя по ID
 // @Description Возвращает данные пользователя по его числовому идентификатору
 // @Tags users

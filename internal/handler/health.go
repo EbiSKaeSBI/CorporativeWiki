@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Health возвращает статус приложения
 // @Summary Проверка состояния
 // @Description Возвращает статус приложения (alive, starting и т.д.)
 // @Tags health

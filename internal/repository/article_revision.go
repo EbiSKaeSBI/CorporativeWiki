@@ -13,7 +13,6 @@ func (r *Repository) CreateArticleRevision(ctx context.Context, revision *models
 	return revision, nil
 }
 
-// GetArticleRevisions — история статьи, свежие версии первыми.
 func (r *Repository) GetArticleRevisions(ctx context.Context, articleID uint) ([]models.ArticleRevision, error) {
 	var revisions []models.ArticleRevision
 	if err := r.db.WithContext(ctx).
